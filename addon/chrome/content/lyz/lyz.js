@@ -73,72 +73,19 @@ Zotero.Lyz = {
     },
 
     lyxGetDoc : function() {
-        var res, fre, fname;
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        if (this.os=="Win"){
-            res = this.lyxAskServer("server-get-filename");
-        } else {
-            res = this._lyxAskServer("server-get-filename");
-        }
-        if (!res) {
-            win.alert("Could not contact server at: " +
-                      this.prefs.getCharPref("lyxserver"));
-            return null;
-        }
-
-        fre = /.*INFO:lyz:server-get-filename:(.*)\n/;
-        fname = fre.exec(res);
-        if (fname == null) {
-            win.alert("ERROR: lyxGetDoc: \n\n" + res);
-            return null;
-        }
-        return fname[1];
+        return LyZServer.getDocument(this);
     },
 
     parseLyXServerResponse: function(command, response) {
-        if (!response) {
-            return null;
-        }
-        var re = new RegExp("INFO:lyz:" + command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ":(.*)");
-        var match = re.exec(response);
-        return match ? match[1].trim() : null;
+        return LyZServer.parseResponse(command, response);
     },
 
     lyxGetPos : function() {
-        if (this.os=="Win"){
-            res = this.lyxAskServer("server-get-xy");
-        } else {
-            res = this._lyxAskServer("server-get-xy");
-        }
-        var xy = /INFO:lyz:server-get-xy:(.*)/.exec(res)[1];
-        return xy;
+        return LyZServer.getPosition(this);
     },
 
     lyxPipeInit : function() {
-        // reading from lyxpipe.out
-        var pipeout;
-        var path;
-        var pipeout_stream;
-        var cstream;
-        var data;
-        var str;
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-
-        pipeout = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsIFile);
-        path = this.prefs.getCharPref("lyxserver");
-        pipeout.initWithPath(path + ".out");
-        if (!pipeout.exists()) {
-            win.alert("The specified LyXServer pipe does not exist.");
-            return null;
-        }
-        pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                .createInstance(Components.interfaces.nsIFileInputStream);
-        cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                .createInstance(Components.interfaces.nsIConverterInputStream);
-        pipeout_stream.init(pipeout, -1, 0, 0);
-        cstream.init(pipeout_stream, "UTF-8", 0, 0);
-        return cstream;
+        return LyZServer.pipeInit(this);
     },
 
     /*
@@ -146,138 +93,19 @@ Zotero.Lyz = {
      * Problem: I don't know why.
      */
     lyxPipeWriteAndRead : function(command) {
-        // Works in Windows
-        // writing to lyxpipe.in
-        var pipein, pipein_stream, msg, str, data;
-
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-
-        try {
-            pipein = Components.classes["@mozilla.org/file/local;1"]
-                    .createInstance(Components.interfaces.nsIFile);
-            pipein.initWithPath(this.prefs.getCharPref("lyxserver") + ".in");
-        } catch (e) {
-            win.alert("Wrong path to Lyx server:\n" +
-                      this.prefs.getCharPref("lyxserver") + "\n" + e);
-            return false;
-        }
-
-        if (!pipein.exists()) {
-            win
-                    .alert("Wrong path to Lyx server.\nSet the path specified in Lyx preferences.");
-            return false;
-        }
-
-        try {
-            pipein_stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                    .createInstance(Components.interfaces.nsIFileOutputStream);
-            pipein_stream.init(pipein, 0x02 | 0x10, 0666, 0); // write, append
-        } catch (e) {
-            win.alert("Failed to:\n" + command);
-            return false;
-        }
-
-        msg = "LYXCMD:lyz:" + command + "\n";
-        pipein_stream.write(msg, msg.length);
-        pipein_stream.close();
-
-        data = "";
-        str = {};
-
-        // ----- open again
-        var pipeout = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsIFile);
-        var path = this.prefs.getCharPref("lyxserver");
-        pipeout.initWithPath(path + ".out");
-        if (!pipeout.exists()) {
-            win.alert("The specified LyXServer pipe does not exist.");
-            return null;
-        }
-        var pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                .createInstance(Components.interfaces.nsIFileInputStream);
-        var cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                .createInstance(Components.interfaces.nsIConverterInputStream);
-        pipeout_stream.init(pipeout, -1, 0, 0);
-        cstream.init(pipeout_stream, "UTF-8", 0, 0);
-
-        cstream.readString(-1, str); // read the whole file and put it in str.value
-        data = str.value;
-        cstream.close();
-        return data;
+        return LyZServer.writeAndRead(this, command);
     },
     
     lyxAskServer : function(command) {
-        // Works in Windows
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-
-        try {
-            return this.lyxPipeWriteAndRead(command);
-        } catch (x) {
-            win.alert("SERVER ERROR:\n" + x);
-            return false;
-        }
-        return true;
+        return LyZServer.askServer(this, command);
     },
     
     _lyxPipeWriteAndRead: function(command,cstream){
-        // Works in Linux 
-        // writing to lyxpipe.in
-        var pipein, pipein_stream, msg, str, data;
-            
-        var win = this.wm.getMostRecentWindow("navigator:browser"); 
-        
-        try {
-            pipein = Components.classes["@mozilla.org/file/local;1"]
-            .createInstance(Components.interfaces.nsIFile);
-            pipein.initWithPath(this.prefs.getCharPref("lyxserver")+".in");
-        } catch(e){
-            win.alert("Wrong path to Lyx server:\n"+this.prefs.getCharPref("lyxserver")+"\n"+e);
-            return false;
-        }
-        
-        if(!pipein.exists()){
-            win.alert("Wrong path to Lyx server.\nSet the path specified in Lyx preferences.");
-            return false;
-        }
-        
-        try {
-            pipein_stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-            .createInstance(Components.interfaces.nsIFileOutputStream);
-            pipein_stream.init(pipein, 0x02| 0x10, 0666, 0); // write, append
-        } catch(e){
-            win.alert("Failed to:\n"+command);
-            return false;
-        }
-        
-        msg = "LYXCMD:lyz:"+command+"\n";
-        pipein_stream.write(msg, msg.length);
-        pipein_stream.close();
-        
-            data = "";
-        str = {};
-        cstream.readString(-1, str); // read the whole file and put it in str.value
-        data = str.value;
-        cstream.close();
-        return data;
+        return LyZServer.writeAndReadWithOpenStream(this, command, cstream);
     },
     
     _lyxAskServer: function(command){
-        // Works in Linux
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        var cstream;
-        try {
-            cstream = this.lyxPipeInit();            
-        } catch (x) {
-            win.alert("SERVER ERROR:\n"+x);
-            return null;
-        }
-        try {
-            return this._lyxPipeWriteAndRead(command,cstream);    
-        } catch (x) {
-            win.alert("SERVER ERROR:\n"+x);
-            return null;
-        }
-        return True;
+        return LyZServer.askServerWithOpenStream(this, command);
     },
 
     settings: async function() {
@@ -439,30 +267,16 @@ Zotero.Lyz = {
     },
 
     getFilePicker: async function() {
-        const version = /^(\d+)\.(\d+)\.(\d+)/.exec(Zotero.version)
-        const preFP = Zotero.platformMajorVersion < 60
-        let fp;
-        if (preFP) {
+        try {
+            const { FilePicker } = ChromeUtils.importESModule("chrome://zotero/content/modules/filePicker.mjs");
+            return [false, new FilePicker()];
+        } catch (e) {
+            Zotero.logError(e);
             var nsIFilePicker = Components.interfaces.nsIFilePicker
-            fp = Components.classes["@mozilla.org/filepicker;1"]
-                    .createInstance(nsIFilePicker)
-        } else {
-            let FilePicker;
-            if (
-                version["1"] == "5" &&
-                version["2"] == "0" &&
-                parseInt(version["3"], 10) < 97
-            ) {
-              Services.console.logStringMessage("old system")
-                FilePicker = require('zotero/filePicker').default
-            } else {
-              Services.console.logStringMessage("new system")
-                FilePicker = require('zotero/modules/filePicker').default
-            }
-            fp = new FilePicker()
+            var fp = Components.classes["@mozilla.org/filepicker;1"]
+                    .createInstance(nsIFilePicker);
+            return [true, fp];
         }
-
-        return [preFP, fp]
     },
 
     dialog_FilePickerOpen: async function(win, title, filter_title, filter) {

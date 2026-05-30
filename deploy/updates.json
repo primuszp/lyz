@@ -3,8 +3,8 @@
     "lyz@zotero.org": {
       "updates": [
         {
-          "version": "5.0.28",
-          "update_link": "https://github.com/primuszp/lyz/releases/download/v5.0.28/lyz.xpi",
+          "version": "5.0.33",
+          "update_link": "https://github.com/primuszp/lyz/releases/download/v5.0.33/lyz.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "7.0",

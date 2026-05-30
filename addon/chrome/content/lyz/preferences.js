@@ -4,12 +4,10 @@ if (typeof Services === "undefined") {
 
 var LyZ_Preferences = {
     translators: [],
-    prefs: null,
-    prefPrefix: "extensions.lyz.",
     saveStatusTimer: null,
 
     async init() {
-        this.prefs = Services.prefs.getBranch("");
+        LyZSettings.init();
         this.bindAutosave();
         this.loadValues();
         try {
@@ -21,59 +19,22 @@ var LyZ_Preferences = {
     },
 
     loadValues() {
+        const values = LyZSettings.getValues();
         const lyxServerInput = document.getElementById("lyz-lyxserver");
-        const defaultLyxServer = this.getDefaultLyXServerPath();
+        const defaultLyxServer = LyZSettings.getDefaultLyXServerPath();
         lyxServerInput.placeholder = defaultLyxServer;
-        lyxServerInput.value = this.getCharPref("lyxserver", defaultLyxServer) || defaultLyxServer;
-        document.getElementById("lyz-citekey").value = this.getCharPref("citekey", "author year title");
-        document.getElementById("lyz-journalabbrev").checked = this.getBoolPref("useJournalAbbreviation", false);
+        lyxServerInput.value = values.lyxserver;
+        document.getElementById("lyz-citekey").value = values.citekey;
+        document.getElementById("lyz-journalabbrev").checked = values.useJournalAbbreviation;
         this.setCiteKeyMode();
     },
 
     getDefaultLyXServerPath() {
-        return Zotero.isWin ? "\\\\.\\pipe\\lyxpipe" : "~/.lyx/lyxpipe";
-    },
-
-    getCharPref(name, fallback) {
-        try {
-            if (this.prefs.getStringPref) {
-                return this.prefs.getStringPref(this.prefPrefix + name);
-            }
-            return this.prefs.getCharPref(this.prefPrefix + name);
-        } catch (e) {
-            return fallback;
-        }
-    },
-
-    setCharPref(name, value) {
-        if (this.prefs.setStringPref) {
-            this.prefs.setStringPref(this.prefPrefix + name, value);
-        } else {
-            this.prefs.setCharPref(this.prefPrefix + name, value);
-        }
-    },
-
-    getBoolPref(name, fallback) {
-        try {
-            return this.prefs.getBoolPref(this.prefPrefix + name);
-        } catch (e) {
-            return fallback;
-        }
-    },
-
-    setBoolPref(name, value) {
-        this.prefs.setBoolPref(this.prefPrefix + name, value);
+        return LyZSettings.getDefaultLyXServerPath();
     },
 
     setCiteKeyMode() {
-        const createCiteKey = this.getBoolPref("createCiteKey", true);
-        const citeKey = this.getCharPref("citekey", "author year title");
-        let mode = "custom";
-        if (!createCiteKey) {
-            mode = "translator";
-        } else if (citeKey == "zotero" || citeKey == "zoteroShort") {
-            mode = citeKey;
-        }
+        const mode = LyZSettings.getCiteKeyMode();
 
         const modeMenu = document.getElementById("lyz-citekey-mode");
         for (const item of document.getElementById("lyz-citekey-mode").querySelectorAll("menuitem")) {
@@ -101,7 +62,7 @@ var LyZ_Preferences = {
             popup.firstChild.remove();
         }
 
-        const selectedTranslator = this.getCharPref("selectedTranslator", "");
+        const selectedTranslator = LyZSettings.getCharPref("selectedTranslator", "");
         const formatMenu = document.getElementById("lyz-format-menu");
         let selectedIndex = -1;
         let defaultIndex = 0;
@@ -128,8 +89,7 @@ var LyZ_Preferences = {
             formatMenu.setAttribute("label", selectedItem.getAttribute("label"));
             formatMenu.setAttribute("value", selectedItem.getAttribute("value"));
             if (!selectedTranslator) {
-                this.setCharPref("selectedTranslator", selectedItem.getAttribute("value"));
-                Services.prefs.savePrefFile(null);
+                LyZSettings.saveValues({ selectedTranslator: selectedItem.getAttribute("value") });
             }
         }
     },
@@ -192,23 +152,22 @@ var LyZ_Preferences = {
             ? formatMenu.selectedItem.getAttribute("value")
             : formatMenu.getAttribute("value")
             ? formatMenu.getAttribute("value")
-            : this.getCharPref("selectedTranslator", "9cb70025-a888-4a29-a210-93ec52da40d4");
+            : LyZSettings.getCharPref("selectedTranslator", "9cb70025-a888-4a29-a210-93ec52da40d4");
         const citeKeyMode = this.getCiteKeyMode();
         const createCiteKey = citeKeyMode != "translator";
-        const citeKey = citeKeyMode == "custom"
-            ? document.getElementById("lyz-citekey").value || "author year title"
-            : citeKeyMode;
-        const lyxServer = document.getElementById("lyz-lyxserver").value || this.getDefaultLyXServerPath();
+        const citeKey = LyZSettings.getCiteKeyForMode(citeKeyMode, document.getElementById("lyz-citekey").value);
+        const lyxServer = document.getElementById("lyz-lyxserver").value || LyZSettings.getDefaultLyXServerPath();
 
         document.getElementById("lyz-lyxserver").value = lyxServer;
         document.getElementById("lyz-citekey").value = citeKeyMode == "custom" ? citeKey : document.getElementById("lyz-citekey").value;
 
-        this.setCharPref("lyxserver", lyxServer);
-        this.setCharPref("citekey", citeKey);
-        this.setBoolPref("createCiteKey", createCiteKey);
-        this.setCharPref("selectedTranslator", selectedTranslator);
-        this.setBoolPref("useJournalAbbreviation", document.getElementById("lyz-journalabbrev").checked);
-        Services.prefs.savePrefFile(null);
+        LyZSettings.saveValues({
+            lyxserver: lyxServer,
+            citekey: citeKey,
+            createCiteKey,
+            selectedTranslator,
+            useJournalAbbreviation: document.getElementById("lyz-journalabbrev").checked
+        });
         Services.console.logStringMessage("LyZ preferences saved: lyxserver=" + lyxServer + ", citekey=" + citeKey);
         if (showStatus) {
             this.showSaveStatus();

@@ -6,6 +6,7 @@
   title="Settings"
   onload="return onLoad();"
   ondialogaccept="return onOK();">
+  <script type="application/javascript" src="settings-service.js"/>
   <script type="application/javascript" src="settings.js"/>
   <grid>
     <columns><column/><column/></columns>

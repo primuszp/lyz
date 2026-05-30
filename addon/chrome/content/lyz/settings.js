@@ -1,7 +1,8 @@
 function onLoad() {
-	document.getElementById("lyxserver").value = window.arguments[0].inn.lyxserver;
-	document.getElementById("citekey").value = window.arguments[0].inn.citekey;
-	if (window.arguments[0].inn.createcitekey){
+	var settings = LyZSettings.getValues();
+	document.getElementById("lyxserver").value = settings.lyxserver;
+	document.getElementById("citekey").value = settings.citekey;
+	if (settings.createCiteKey){
 		document.getElementById("createcitekey").checked = true;
 		document.getElementById("citekey").disabled = false;
 	} else {
@@ -10,11 +11,7 @@ function onLoad() {
 	}
 	var translators = window.arguments[0].inn.translators;
 	
-	var prefService =
-		Components.classes["@mozilla.org/preferences-service;1"].
-		getService(Components.interfaces.nsIPrefBranch);
-	document.getElementById("journalabbrev").checked = 
-		prefService.getBoolPref("extensions.lyz.useJournalAbbreviation");
+	document.getElementById("journalabbrev").checked = settings.useJournalAbbreviation;
 
 	var formatMenu = document.getElementById("format-menu");
 	var formatPopup = document.getElementById("format-popup");
@@ -27,7 +24,7 @@ function onLoad() {
 		formatPopup.appendChild(itemNode);
 
 		// select last selected translator
-		if (translators[i].translatorID == window.arguments[0].inn.selectedTranslator) {
+		if (translators[i].translatorID == settings.selectedTranslator) {
 			formatMenu.selectedIndex = i;
 		}
 		if (translators[i].translatorID == '9cb70025-a888-4a29-a210-93ec52da40d4') {
@@ -45,13 +42,21 @@ function onLoad() {
 
 function onOK() {
 	var index = document.getElementById("format-menu").selectedIndex;
-	window.arguments[0].out = {
+	var values = {
 		lyxserver : document.getElementById("lyxserver").value,
 		citekey : document.getElementById("citekey").value,
 		createcitekey: document.getElementById("createcitekey").checked,
 		selectedTranslator : window.arguments[0].inn.translators[index].translatorID,
 		useJournalAbbreviation : document.getElementById("journalabbrev").checked
 	};
+	LyZSettings.saveValues({
+		lyxserver: values.lyxserver,
+		citekey: values.citekey,
+		createCiteKey: values.createcitekey,
+		selectedTranslator: values.selectedTranslator,
+		useJournalAbbreviation: values.useJournalAbbreviation
+	});
+	window.arguments[0].out = values;
 	return true;
 }
 
