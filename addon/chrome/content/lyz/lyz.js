@@ -489,13 +489,13 @@ Zotero.Lyz = {
                 path = fp.file
             }
 
-            if (path.split(".").length < 2) {
+            if (!/[\\\/][^\\\/]*\.[^\\\/]+$/.test(path)) {
                 // this is weird, but I don't know how to set new path
                 var file = Components.classes["@mozilla.org/file/local;1"]
                         .createInstance(Components.interfaces.nsIFile);
                 file.initWithPath(path + ".bib");
                 file.create(file.NORMAL_FILE_TYPE, 0666);
-                return file;
+                return file.path;
             } else {// overwrite the file if it exists
                 this.replace = true;
                 return path
@@ -514,6 +514,7 @@ Zotero.Lyz = {
     },
 
     fileReadByLine : function(path) {
+        var win = this.wm.getMostRecentWindow("navigator:browser");
         var file = Components.classes["@mozilla.org/file/local;1"]
                 .createInstance(Components.interfaces.nsIFile);
         file.initWithPath(path);
@@ -805,6 +806,9 @@ Zotero.Lyz = {
         }
         // check document name
         var res = await this.checkDocInDB();
+        if (!res) {
+            return;
+        }
         var bib = res[0];
         var doc = res[1];
         var items;
@@ -813,7 +817,7 @@ Zotero.Lyz = {
         var citekey;
         var text;
         if (bib.length === 0) {
-            t = "Press OK to create new BibTeX database.\n";
+            var t = "Press OK to create new BibTeX database.\n";
             t += "Press Cancel to select from your existing databases\n";
 
             // FIXME: the buttons don't show correctly, STD_YES_NO_BUTTONS doesn't work
@@ -862,7 +866,7 @@ Zotero.Lyz = {
                 if (ask) {
                     // FIXME: started to act weird
                     var xy = this.lyxGetPos();
-                    this.updateBibtexAll();
+                    await this.updateBibtexAll();
                     if (this.os == "Win"){
                         this.lyxAskServer("server-set-xy:" + xy);
                     } else {
