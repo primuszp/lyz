@@ -4,7 +4,7 @@
 
   <Description about="urn:mozilla:install-manifest">
     <em:id>lyz@zotero.org</em:id>
-        <em:version>5.0.15</em:version>
+        <em:version>5.0.17</em:version>
 	<em:multiprocessCompatible>true</em:multiprocessCompatible>
         <em:updateURL>https://raw.githubusercontent.com/primuszp/lyz/release/deploy/updates.json</em:updateURL>
     <em:type>2</em:type>

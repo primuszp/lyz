@@ -269,7 +269,9 @@ var LyZBootstrap = {
                 wantdropmarker: "true",
                 class: "zotero-tb-button"
             });
-            button.style.listStyleImage = `url("${this.rootURI}chrome/skin/default/lyz/lyz.png")`;
+            button.style.listStyleImage = `url("${this.rootURI}chrome/skin/default/lyz/lyz.svg")`;
+            button.style.setProperty("-moz-context-properties", "fill, fill-opacity");
+            button.style.fill = "currentColor";
             const popup = this.createXULElement(doc, "menupopup", { id: "lyz-menupopup" });
             button.appendChild(popup);
 
