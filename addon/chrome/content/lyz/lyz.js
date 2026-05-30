@@ -95,6 +95,15 @@ Zotero.Lyz = {
         return fname[1];
     },
 
+    parseLyXServerResponse: function(command, response) {
+        if (!response) {
+            return null;
+        }
+        var re = new RegExp("INFO:lyz:" + command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ":(.*)");
+        var match = re.exec(response);
+        return match ? match[1].trim() : null;
+    },
+
     lyxGetPos : function() {
         if (this.os=="Win"){
             res = this.lyxAskServer("server-get-xy");
@@ -272,6 +281,11 @@ Zotero.Lyz = {
     },
 
     settings: async function() {
+        if (Zotero.PreferencePanes && Zotero.Utilities && Zotero.Utilities.Internal) {
+            Zotero.Utilities.Internal.openPreferences("lyz-prefpane");
+            return;
+        }
+
         var translation = new Zotero.Translate("export")
         var translators = await translation.getTranslators()
 
@@ -567,23 +581,35 @@ Zotero.Lyz = {
 
     test: function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var t = win.prompt("Command", "server-get-filename");
-        if (!t) {
-            win.alert("Error: " + t);
+        var command = win.prompt("Command", "server-get-filename");
+        if (!command) {
+            win.alert("No LyX command entered.");
             return;
         }
         try {
+            var response;
             if (this.os == "Win"){
-                t = this.lyxAskServer(t);
+                response = this.lyxAskServer(command);
             } else {
-                t = this._lyxAskServer(t);
+                response = this._lyxAskServer(command);
             }
-            win.alert("RESPONSE: " + t);
+            if (!response) {
+                win.alert("No response from LyX server.");
+                return;
+            }
+            var parsed = this.parseLyXServerResponse(command, response);
+            if (parsed) {
+                win.alert("LyX response for " + command + ":\n\n" + parsed);
+            } else if (response.indexOf("INFO:lyz:" + command + ":") >= 0) {
+                win.alert("LyX responded to " + command + ", but returned an empty value.\n\n"
+                    + "If this was server-get-filename, make sure the LyX document is saved to disk and active.");
+            } else {
+                win.alert("Raw LyX response for " + command + ":\n\n" + response);
+            }
         } catch (e) {
             win.alert("Error connecting to lyxserver...\n" + e +
                       "\nTry again.");
         }
-        win.alert("DONE");
     },
 
     checkDocInDB: async function() {

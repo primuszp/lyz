@@ -12,6 +12,7 @@ var LyZBootstrap = {
     rootURI: null,
     chromeHandle: null,
     menuIDs: [],
+    preferencePaneID: null,
     windows: new Set(),
 
     async init(rootURI) {
@@ -23,6 +24,7 @@ var LyZBootstrap = {
         this.debug("lyz.js loaded");
         await Zotero.uiReadyPromise;
         this.debug("uiReadyPromise resolved");
+        await this.registerPreferencePane();
         this.registerMenus();
         this.ensureLyzInitialized().catch(e => Zotero.logError(e));
         this.initialized = true;
@@ -155,6 +157,26 @@ var LyZBootstrap = {
 
     hasRegisteredMenus() {
         return this.menuIDs.length > 0;
+    },
+
+    async registerPreferencePane() {
+        if (this.preferencePaneID || !Zotero.PreferencePanes) {
+            return;
+        }
+        try {
+            this.preferencePaneID = await Zotero.PreferencePanes.register({
+                pluginID: "lyz@zotero.org",
+                id: "lyz-prefpane",
+                label: "LyZ",
+                image: "chrome/skin/default/lyz/lyz.svg",
+                src: "chrome/content/lyz/preferences.xhtml",
+                scripts: ["chrome/content/lyz/preferences.js"]
+            });
+            this.debug("registered preference pane: " + this.preferencePaneID);
+        } catch (e) {
+            Zotero.logError(e);
+            this.debug("preference pane registration failed: " + e);
+        }
     },
 
     getMenuItems() {
@@ -389,6 +411,10 @@ var LyZBootstrap = {
     shutdown() {
         while (this.menuIDs.length) {
             Zotero.MenuManager.unregisterMenu(this.menuIDs.pop());
+        }
+        if (this.preferencePaneID && Zotero.PreferencePanes) {
+            Zotero.PreferencePanes.unregister(this.preferencePaneID);
+            this.preferencePaneID = null;
         }
         if (this.chromeHandle) {
             this.chromeHandle.destruct();
