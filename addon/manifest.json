@@ -1,0 +1,19 @@
+{
+  "manifest_version": 2,
+  "name": "LyZ",
+  "version": "5.0.14",
+  "description": "LyX integration plugin for Zotero.",
+  "author": "Petr Šimon, Primusz Péter, Will Shanks, and contributors",
+  "homepage_url": "https://github.com/primuszp/lyz",
+  "icons": {
+    "48": "chrome/skin/default/lyz/lyz.png"
+  },
+  "applications": {
+    "zotero": {
+      "id": "lyz@zotero.org",
+      "update_url": "https://raw.githubusercontent.com/primuszp/lyz/release/deploy/updates.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "9.0.*"
+    }
+  }
+}

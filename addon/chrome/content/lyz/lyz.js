@@ -1,21 +1,30 @@
 // Credits:
 // - small bits were borrowed from Lytero by Demetrio Girardi, lytero@dementrioatgmail.com
-Components.utils.import("resource://gre/modules/Services.jsm");
-Components.utils.import("resource://gre/modules/osfile.jsm");
+if (typeof Services === "undefined") {
+    var { Services } = ChromeUtils.importESModule("resource://gre/modules/Services.sys.mjs");
+}
+if (typeof PathUtils === "undefined" && typeof ChromeUtils !== "undefined") {
+    var { PathUtils } = ChromeUtils.importESModule("resource://gre/modules/PathUtils.sys.mjs");
+}
 
 Zotero.Lyz = {
 
     prefs : null,
     DB : null,
+    initialized: false,
+    rootURI: null,
     replace : false,
     wm : null,
     os: null,
 
     init: async function() {
+        if (this.initialized) {
+            return;
+        }
         await Zotero.Schema.schemaUpdatePromise
 
         //set up preferences
-        if (navigator.platform.indexOf("Win")===0){
+        if (Zotero.isWin){
             this.os = "Win";
         } else {// assuming this works also for MacOS better
             this.os = "Linux";
@@ -37,6 +46,14 @@ Zotero.Lyz = {
         if (this.prefs.getBoolPref('checkZotero5Migration')) {
             this.migrateToZotero5()
         }
+        this.initialized = true;
+    },
+
+    contentURL: function(fileName) {
+        if (this.rootURI) {
+            return this.rootURI + "chrome/content/lyz/" + fileName;
+        }
+        return "chrome://lyz/content/" + fileName;
     },
 
     setDefaultPrefs: function() {
@@ -272,7 +289,7 @@ Zotero.Lyz = {
             },
             out : null
         };
-        win.openDialog("chrome://lyz/content/settings.xul", "",
+        win.openDialog(this.contentURL("settings.xul"), "",
                 "chrome, dialog, modal, centerscreen, resizable=yes", params);
 
         if (params.out) {
@@ -549,7 +566,7 @@ Zotero.Lyz = {
 
     test: function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var t = prompt("Command", "server-get-filename");
+        var t = win.prompt("Command", "server-get-filename");
         if (!t) {
             win.alert("Error: " + t);
             return;
@@ -694,7 +711,7 @@ Zotero.Lyz = {
             // check for non-latin names
             if (author[0].charCodeAt() > 7929) {
                 non_latin = true;
-                author = author.toSource().split("\\u")[1];
+                author = author.codePointAt(0).toString(16);
             }
             
             var tmp = "";
@@ -989,7 +1006,7 @@ Zotero.Lyz = {
             },
             out : null
         };
-        var res = win.openDialog("chrome://lyz/content/select.xul", "",
+        var res = win.openDialog(this.contentURL("select.xul"), "",
                 "chrome, dialog, modal, centerscreen, resizable=yes", params);
         if (!params.out)
             return;
@@ -1020,7 +1037,7 @@ Zotero.Lyz = {
             },
             out : null
         };
-        var res = win.openDialog("chrome://lyz/content/select.xul", "",
+        var res = win.openDialog(this.contentURL("select.xul"), "",
                 "chrome, dialog, modal, centerscreen, resizable=yes", params);
         if (!params.out)
             return;
@@ -1048,7 +1065,7 @@ Zotero.Lyz = {
             },
             out : null
         };
-        var res = win.openDialog("chrome://lyz/content/select.xul", "",
+        var res = win.openDialog(this.contentURL("select.xul"), "",
                 "chrome, dialog, modal, centerscreen, resizable=yes", params);
         if (!params.out)
             return;
@@ -1075,7 +1092,7 @@ Zotero.Lyz = {
             },
             out : null
         };
-        var res = win.openDialog("chrome://lyz/content/select.xul", "",
+        var res = win.openDialog(this.contentURL("select.xul"), "",
                 "chrome, dialog, modal, centerscreen, resizable=yes", params);
         if (!params.out)
             return;
@@ -1092,7 +1109,11 @@ Zotero.Lyz = {
     },
 
     shutdown: Zotero.Promise.coroutine(function*() {
-        yield Zotero.Lyz.DB.closeDatabase(true)
+        if (Zotero.Lyz.DB) {
+            yield Zotero.Lyz.DB.closeDatabase(true)
+            Zotero.Lyz.DB = null
+        }
+        Zotero.Lyz.initialized = false
     }),
 
     migrateToZotero5: Zotero.Promise.coroutine(function*(context) {
@@ -1170,7 +1191,9 @@ Zotero.Lyz = {
         if (droppedKeys.length > 0) {
             var report = 'Document,Old key,New key\r\n' + droppedKeys.join('\r\n')
 
-            var reportPath = OS.Path.join(Zotero.DataDirectory.dir, 'lyz_migration.csv')
+            var reportPath = PathUtils
+                ? PathUtils.join(Zotero.DataDirectory.dir, 'lyz_migration.csv')
+                : OS.Path.join(Zotero.DataDirectory.dir, 'lyz_migration.csv')
             var fbibtex_stream, cstream
             [ fbibtex_stream, cstream ] = this.fileWrite(reportPath)
             cstream.writeString(report)
@@ -1178,7 +1201,7 @@ Zotero.Lyz = {
             fbibtex_stream.close()
 
             win = this.wm.getMostRecentWindow("navigator:browser")
-            win.openDialog('chrome://lyz/content/migration5.xul', 'lyz-migration-window',
+            win.openDialog(this.contentURL('migration5.xul'), 'lyz-migration-window',
                            'chrome, centerscreen',
                            report)
         } else {

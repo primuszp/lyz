@@ -1,0 +1,18 @@
+{
+  "addons": {
+    "lyz@zotero.org": {
+      "updates": [
+        {
+      "version": "5.0.14",
+          "update_link": "https://github.com/primuszp/lyz/releases/download/v5.0.13/lyz.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "7.0",
+              "strict_max_version": "9.0.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

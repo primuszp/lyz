@@ -4,11 +4,12 @@
 
   <Description about="urn:mozilla:install-manifest">
     <em:id>lyz@zotero.org</em:id>
-    <em:version>4.1.3a1</em:version>
+        <em:version>5.0.14</em:version>
 	<em:multiprocessCompatible>true</em:multiprocessCompatible>
-        <em:updateURL>https://raw.githubusercontent.com/wshanks/lyz/release/deploy/update.rdf</em:updateURL>
+        <em:updateURL>https://raw.githubusercontent.com/primuszp/lyz/release/deploy/updates.json</em:updateURL>
     <em:type>2</em:type>
     <em:unpack>true</em:unpack>
+    <em:bootstrap>true</em:bootstrap>
     <!-- Target Application this extension can install into, 
          with minimum and maximum supported versions. --> 
     <em:targetApplication>
@@ -20,6 +21,13 @@
     </em:targetApplication>
     <em:targetApplication>
       <Description>
+	<em:id>zotero@zotero.org</em:id>
+	<em:minVersion>7.0</em:minVersion>
+	<em:maxVersion>9.0.*</em:maxVersion>
+      </Description>
+    </em:targetApplication>
+    <em:targetApplication>
+      <Description>
 	<em:id>juris-m@juris-m.github.io</em:id>
 	<em:minVersion>5.0.24</em:minVersion>
 	<em:maxVersion>*</em:maxVersion>
@@ -27,7 +35,7 @@
     </em:targetApplication>
   <em:name>LyZ</em:name>
   <em:description>LyX integration plugin.</em:description>
-  <em:creator>Petr Šimon</em:creator>
-  <em:homepageURL>https://github.com/wshanks/lyz</em:homepageURL>
+  <em:creator>Petr Šimon, Primusz Péter, Will Shanks, and contributors</em:creator>
+  <em:homepageURL>https://github.com/primuszp/lyz</em:homepageURL>
   </Description>      
 </RDF>
