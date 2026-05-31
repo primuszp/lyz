@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "LyZ",
-  "version": "5.0.33",
+  "version": "5.0.50",
   "description": "LyX integration plugin for Zotero.",
   "author": "Petr Šimon, Primusz Péter, Will Shanks, and contributors",
   "homepage_url": "https://github.com/primuszp/lyz",

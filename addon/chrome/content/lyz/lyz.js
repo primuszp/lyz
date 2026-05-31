@@ -38,11 +38,7 @@ Zotero.Lyz = {
         var shutdownObserver = {observe: this.shutdown}
         Services.obs.addObserver(shutdownObserver, "quit-application", false);
 
-        var sqlDocs = "CREATE TABLE IF NOT EXISTS docs (id INTEGER PRIMARY KEY, doc TEXT, bib TEXT)";
-        var sqlKeys = "CREATE TABLE IF NOT EXISTS keys (id INTEGER PRIMARY KEY, key TEXT, bib TEXT, zid TEXT)";
-        this.DB = new Zotero.DBConnection("lyz");
-        await this.DB.queryAsync(sqlDocs);
-        await this.DB.queryAsync(sqlKeys);
+        await LyZDatabase.init(this);
         if (this.prefs.getBoolPref('checkZotero5Migration')) {
             this.migrateToZotero5()
         }
@@ -261,9 +257,20 @@ Zotero.Lyz = {
 
     getZoteroItem : function(key) {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        
-        var keyhash = Zotero.Items.parseLibraryKeyHash(key);
-        return Zotero.Items.getByLibraryAndKey(keyhash.libraryID, keyhash.key);
+        try {
+            var keyhash = Zotero.Items.parseLibraryKeyHash(key);
+            if (!keyhash || keyhash.libraryID === undefined || !keyhash.key) {
+                return null;
+            }
+            return Zotero.Items.getByLibraryAndKey(keyhash.libraryID, keyhash.key);
+        } catch (e) {
+            Zotero.debug("LyZ skipped invalid Zotero item key: " + key);
+            return null;
+        }
+    },
+
+    isValidZoteroItemKey: function(key) {
+        return !!this.getZoteroItem(key);
     },
 
     getFilePicker: async function() {
@@ -323,6 +330,7 @@ Zotero.Lyz = {
                         .createInstance(Components.interfaces.nsIFile);
                 file.initWithPath(path + ".bib");
                 file.create(file.NORMAL_FILE_TYPE, 0666);
+                this.replace = true;
                 return file.path;
             } else {// overwrite the file if it exists
                 this.replace = true;
@@ -337,6 +345,17 @@ Zotero.Lyz = {
             }
             return path
         } else {
+            return false;
+        }
+    },
+
+    fileExists: function(path) {
+        try {
+            var file = Components.classes["@mozilla.org/file/local;1"]
+                    .createInstance(Components.interfaces.nsIFile);
+            file.initWithPath(path);
+            return file.exists();
+        } catch (e) {
             return false;
         }
     },
@@ -395,9 +414,9 @@ Zotero.Lyz = {
 
     test: function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var command = win.prompt("Command", "server-get-filename");
+        var command = this.prompt("Command", "server-get-filename", "LyZ Command");
         if (!command) {
-            win.alert("No LyX command entered.");
+            this.alert("No LyX command entered.", "LyZ Command");
             return;
         }
         try {
@@ -408,21 +427,21 @@ Zotero.Lyz = {
                 response = this._lyxAskServer(command);
             }
             if (!response) {
-                win.alert("No response from LyX server.");
+                this.alert("No response from LyX server.", "LyZ Command");
                 return;
             }
             var parsed = this.parseLyXServerResponse(command, response);
             if (parsed) {
-                win.alert("LyX response for " + command + ":\n\n" + parsed);
-            } else if (response.indexOf("INFO:lyz:" + command + ":") >= 0) {
-                win.alert("LyX responded to " + command + ", but returned an empty value.\n\n"
-                    + "If this was server-get-filename, make sure the LyX document is saved to disk and active.");
+                this.alert("LyX response for " + command + ":\n\n" + parsed, "LyZ Command");
+            } else if (response.indexOf(":" + command + ":") >= 0) {
+                this.alert("LyX responded to " + command + ", but returned an empty value.\n\n"
+                    + "If this was server-get-filename, make sure the LyX document is saved to disk and active.",
+                    "LyZ Command");
             } else {
-                win.alert("Raw LyX response for " + command + ":\n\n" + response);
+                this.alert("Raw LyX response for " + command + ":\n\n" + response, "LyZ Command");
             }
         } catch (e) {
-            win.alert("Error connecting to lyxserver...\n" + e +
-                      "\nTry again.");
+            this.alert("Error connecting to lyxserver...\n" + e + "\nTry again.", "LyZ Command");
         }
     },
 
@@ -434,206 +453,84 @@ Zotero.Lyz = {
             win.alert("Could not retrieve document name.");
             return null;
         }
-        res = await this.DB.queryAsync("SELECT doc,bib FROM docs WHERE doc = ?",[doc]);
+        res = await LyZDatabase.getDocumentRecord(this, doc);
         if (res.length === 0) {
             return [ res, doc ];
         }
+        Services.console.logStringMessage("LyZ document mapping: doc=" + doc + ", bib=" + res[0].bib);
         return [res[0].bib, doc];
     },
 
     addNewDocument: async function(doc, bib) {
-        await this.DB.queryAsync("INSERT INTO docs (doc,bib) VALUES(?,?)",[doc,bib]);
+        await LyZDatabase.addDocument(this, doc, bib);
+    },
+
+    alert: function(message, title = "LyZ Message") {
+        Services.prompt.alert(null, title, message);
+    },
+
+    confirm: function(message, title = "LyZ Message") {
+        return Services.prompt.confirm(null, title, message);
+    },
+
+    prompt: function(message, value = "", title = "LyZ Message") {
+        var input = { value };
+        var ok = Services.prompt.prompt(null, title, message, input, null, {});
+        return ok ? input.value : null;
+    },
+
+    selectBibForDocument: async function(win, doc) {
+        var t = "Press OK to create new BibTeX database.\n";
+        t += "Press Cancel to select from your existing databases\n";
+
+        var createNew = this.confirm(t, "LyZ BibTeX Database");
+        if (createNew) {
+            return await this.dialog_FilePickerSave(win,
+                    "Select Bibtex file for " + doc, "Bibtex", "*.bib");
+        }
+        return await this.dialog_FilePickerOpen(win,
+                "Select Bibtex file for " + doc, "Bibtex", "*.bib");
     },
 
     exportToBibtex: Zotero.Promise.coroutine(function*(items, bib, zids) {
-        // returns hash {id:[citekey,text]}
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        var text;
-
-        var callback = function(obj, worked) {
-            text = obj.string;
-        };
-
-        var translation = new Zotero.Translate.Export;
-        var translatorID = this.prefs.getCharPref("selectedTranslator");
-        translation.setTranslator(translatorID);
-        translation.setHandler("done", callback);
-        
-        if (this.prefs.getBoolPref("use_utf8")){
-            translation.setDisplayOptions({"exportCharset" : "UTF-8"});
-        } else {
-            translation.setDisplayOptions({"exportCharset" : "escape"});
-        }
-        if (this.prefs.getBoolPref("useJournalAbbreviation")){
-            translation.setDisplayOptions({"useJournalAbbreviation" : "True"});
-        }
-
-        var tmp = [];
-        var newCitekeys = []
-        for ( var i = 0; i < items.length; i++) {
-            // TODO: change to libraryKey
-            var id = Zotero.Items.getLibraryKeyHash(items[i]);
-            translation.setItems([ items[i] ]);
-            // XXX: Not setting value of text
-            yield translation.translate();
-            var ct;
-            var itemOK = true;
-            if (this.prefs.getBoolPref("createCiteKey")===true){
-                // Workaround entries that have been deleted and added again to Zotero, which means they will have 
-                // new zotero id and we can't identify them. 
-                    ct = yield this.createCiteKey(id, text, bib, items[i].key, newCitekeys);
-                    newCitekeys.push(ct[0])
-            } else {
-                var ckre = /.*@[a-z]+\{([^,]+),{1}/;
-                var key = ckre.exec(text)[1];
-                ct = [key, text];
-            }
-            if (itemOK) tmp[id] = [ ct[0], ct[1] ];
-        }
-
-        return tmp;
+        return yield LyZBibTeX.exportItems(this, items, bib, zids);
     }),
 
     createCiteKey: Zotero.Promise.coroutine(function*(id, text, bib, obj_key, keyBlacklist) {
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        var ckre = /.*@[a-z]+\{([^,]+),{1}/;
-        // TODO if item has been deleted from Zotero and added again it will have a new key
-        // basically no way to know.
-        var oldkey = ckre.exec(text)[1];
-        var dic = [];
-        // current format is 0_XXXXXXX where 0 is "library id", not sure what that is for
-        dic.zotero = id;
-        var citekey;
-        if (this.prefs.getCharPref("citekey") == "zotero") {
-            citekey = id;
-            text = text.replace(oldkey, citekey);
-            return [ citekey, text ];
-        }
-        
-        else if (this.prefs.getCharPref("citekey") == "zoteroShort"){
-            citekey = obj_key;
-            text = text.replace(oldkey,citekey);
-            return [citekey,text];
-        }
-
-        var creators;
-        var authors;
-        var author;
-        var c = "";
-        var chars = "";
-        var t;
-        var title;
-        var year;
-        var p;
-        citekey = "";
-
-        // NAME
-        ckre = /author\s?=\s?\{(.*)\},?\n/;
-        creators = ckre.exec(text);
-        if (!creators) {
-            ckre = /editor\s?=\s?\{(.*)\},?\n/;
-            creators = ckre.exec(text);
-        }
-        try {
-            authors = creators[1];
-        } catch (e) {
-            authors = null;
-        }
-
-        var non_latin;
-        if (authors) {
-            if (authors.split(" and ").length > 1) {
-                author = authors.split(" and ")[0].split(",");
-                author = author[0].toLowerCase();
-            } else {
-                author = authors.split(",");
-                author = author[0].toLowerCase();
-            }
-            // check for non-latin names
-            if (author[0].charCodeAt() > 7929) {
-                non_latin = true;
-                author = author.codePointAt(0).toString(16);
-            }
-            
-            var tmp = "";
-            for ( var i in author) {
-                if (author[i] in lyz_charmap)
-                    tmp += lyz_charmap[author[i]];
-                else
-                    tmp += author[i];
-            }
-            author = tmp;
-
-        } else {
-            author = "";
-        }
-
-        dic.author = author;
-
-        // TITLE
-        if (non_latin) {
-            title = "";
-        } else {
-            ckre = /title = \{(.*)\},\n/;
-            t = ckre.exec(text)[1].toLowerCase();
-            t = t.replace(/[^a-z0-9\s]/g, "");
-            t = t.split(" ");
-            t.reverse();
-            title = t.pop();
-            // the if statement is there because of short titles, e.g. Ema
-            if (title < 6) {// the, a, on, about
-                if (t.length > 0)
-                    title += t.pop();
-            }
-            if (title.length < 7) {
-                if (t.length > 0)
-                    title += t.pop();
-            }
-        }
-        dic.title = title;
-        // YEAR
-        ckre = /[\s,]+(year|date)\s*=\s*\{\D*(\d+)[^\}]*\},?/;
-        try {
-            year = ckre.exec(text)[2].replace(" ", "");
-        } catch (e) {
-            year = "";
-        }
-        dic.year = year;
-        // custom cite key
-        p = this.prefs.getCharPref("citekey").split(" ");
-        for ( var i = 0; i < p.length; i++) {
-            if (p[i] in dic) {
-                citekey += dic[p[i]];
-            } else
-                citekey += p[i];
-        }
-
-        var re = /\\.\{/g;
-        citekey = citekey.replace(re, "");
-        re = /[^a-z0-9\!\$\&\*\+\-\.\/\:\;\<\>\?\[\]\^\_\`\|]+/g;
-        citekey = citekey.replace(re, "");
-        //check if cite key exists
-        var testKey = citekey
-        var count = 1
-        while (true) {
-            count = count + 1
-            if (keyBlacklist.indexOf(testKey) != -1) {
-                testKey = citekey + count
-                continue
-            } else {
-                var res = yield this.DB.queryAsync("SELECT key,zid FROM keys WHERE bib=? AND key=? AND zid<>?",[bib,testKey,id]);
-                if (res.length > 0) {
-                    testKey = citekey + count
-                    continue
-                } else {
-                    citekey = testKey
-                    break
-                }
-            }
-        }
-        text = text.replace(oldkey, citekey);
-        return [ citekey, text ];
+        return yield LyZBibTeX.createCiteKey(this, id, text, bib, obj_key, keyBlacklist);
     }),
+
+    rebuildBibtexFromDatabase: async function(bib) {
+        var win = this.wm.getMostRecentWindow("navigator:browser");
+        var ids_h = await LyZDatabase.getKeysForBib(this, bib);
+        var ids = [];
+        var zids = [];
+        for (var i = 0; i < ids_h.length; i++) {
+            var zid = ids_h[i].zid;
+            var item = this.getZoteroItem(zid);
+            if (!item) {
+                Zotero.debug("LyZ skipped stale database key during rebuild: " + zid);
+                continue;
+            }
+            ids.push(item);
+            zids.push(zid);
+        }
+        if (!ids.length) {
+            return false;
+        }
+
+        var exported = await this.exportToBibtex(ids, bib, zids);
+        var text = "";
+        var newZids = [];
+        for (var id in exported) {
+            text += exported[id][1];
+            newZids.push(id);
+            await LyZDatabase.updateKey(this, exported[id][0], id, bib);
+        }
+        this.replace = true;
+        this.writeBib(bib, text, newZids);
+        return true;
+    },
 
     checkAndCite: async function() {
         // export citation to Bibtex
@@ -656,29 +553,48 @@ Zotero.Lyz = {
         var entries_text = "";
         var citekey;
         var text;
+        var bibWasChanged = false;
+        var recreateMissingBib = false;
         if (bib.length === 0) {
-            var t = "Press OK to create new BibTeX database.\n";
-            t += "Press Cancel to select from your existing databases\n";
-
-            // FIXME: the buttons don't show correctly, STD_YES_NO_BUTTONS doesn't work
-            res = win.confirm(t, "BibTex database selection");
-            if (res) {
-                bib = await this.dialog_FilePickerSave(win,
-                        "Select Bibtex file for " + doc, "Bibtex", "*.bib");
-                if (!bib)
-                    return;
-
-            } else {
-                bib = await this.dialog_FilePickerOpen(win,
-                        "Select Bibtex file for " + doc, "Bibtex", "*.bib");
-                if (!bib)
-                    return;
+            bib = await this.selectBibForDocument(win, doc);
+            if (!bib) {
+                return;
             }
-
-            if (bib)
-                await this.addNewDocument(doc, bib);
-            else
-                return;//file dialog canceled
+            await LyZDatabase.setDocumentBib(this, doc, bib);
+            bibWasChanged = true;
+        } else {
+            var useExistingBib;
+            if (!this.fileExists(bib)) {
+                useExistingBib = this.confirm(
+                    "Active LyX document:\n" + doc + "\n\n" +
+                    "LyZ links it to this BibTeX database, but the file is missing:\n" + bib + "\n\n" +
+                    "Press OK to recreate the missing BibTeX file from LyZ records.\n" +
+                    "Press Cancel to choose or create a different BibTeX database for this document.",
+                    "LyZ BibTeX database missing");
+                if (useExistingBib) {
+                    this.replace = true;
+                    recreateMissingBib = true;
+                }
+            } else {
+                useExistingBib = this.confirm(
+                    "Active LyX document:\n" + doc + "\n\n" +
+                    "LyZ currently links it to this BibTeX database:\n" + bib + "\n\n" +
+                    "Press OK to use this BibTeX database.\n" +
+                    "Press Cancel to choose or create a different BibTeX database for this document.",
+                    "LyZ BibTeX database");
+            }
+            if (!useExistingBib) {
+                var newBib = await this.selectBibForDocument(win, doc);
+                if (!newBib) {
+                    return;
+                }
+                bib = newBib;
+                await LyZDatabase.setDocumentBib(this, doc, bib);
+                bibWasChanged = true;
+            }
+        }
+        if (bibWasChanged) {
+            await LyZDatabase.clearKeysForBib(this, bib);
         }
         items = await this.exportToBibtex(zitems, bib);
         keys = [];
@@ -690,10 +606,10 @@ Zotero.Lyz = {
             keys.push(citekey);
             //check database, if not in, append to entries_text
             //single key can be associated with several bibtex files
-            res = await this.DB.queryAsync("SELECT key FROM keys WHERE bib=? AND zid=?",[bib,zid]);
+            res = await LyZDatabase.findKey(this, bib, zid);
 
             if (res.length === 0) {
-                await this.DB.queryAsync("INSERT INTO keys VALUES(null,?,?,?)",[citekey,bib,zid]);
+                await LyZDatabase.insertKey(this, citekey, bib, zid);
                 zids.push(zid);
                 entries_text += text;
             } else if (res[0].key != citekey) {
@@ -717,7 +633,12 @@ Zotero.Lyz = {
                 }
             }
         }
-        if (!entries_text == "") {
+        if (recreateMissingBib) {
+            var rebuilt = await this.rebuildBibtexFromDatabase(bib);
+            if (!rebuilt && entries_text != "") {
+                this.writeBib(bib, entries_text, zids);
+            }
+        } else if (!entries_text == "") {
             this.writeBib(bib, entries_text, zids);
         }
         
@@ -750,7 +671,7 @@ Zotero.Lyz = {
                             "\" will be used.\nDo you want to continue?");
         if (p) {
             // get all ids for the bibtex file
-            var ids_h = yield this.DB.queryAsync("SELECT zid,key FROM keys WHERE bib=? GROUP BY zid",[bib]);
+            var ids_h = yield LyZDatabase.getKeysForBib(this, bib);
             var ids = [];
             var zids = [];
             var oldkeys = [];
@@ -758,9 +679,18 @@ Zotero.Lyz = {
             for ( var i = 0; i < ids_h.length; i++) {
                 zid = ids_h[i].zid;
                 var item = this.getZoteroItem(zid);
+                if (!item) {
+                    Zotero.debug("LyZ skipped stale database key during update: " + zid);
+                    continue;
+                }
                 ids.push(item);
                 zids.push(zid);
                 oldkeys[ids_h[i].key] = zid;
+            }
+            if (!ids.length) {
+                win.alert("No valid Zotero item records were found for this BibTeX database.\n\n"
+                    + "The LyZ database may contain stale records from an older or malformed BibTeX header.");
+                return;
             }
 
             var ex = yield this.exportToBibtex(ids, bib, zids);
@@ -780,7 +710,7 @@ Zotero.Lyz = {
 
             // now is time to update db, bibtex and lyx
             for ( zid in newkeys) {
-                yield this.DB.queryAsync("UPDATE keys SET key=? WHERE zid=? AND bib=?",[newkeys[zid],zid,bib]);
+                yield LyZDatabase.updateKey(this, newkeys[zid], zid, bib);
             }
             this.writeBib(bib, text, zids);
             res = win
@@ -820,20 +750,27 @@ Zotero.Lyz = {
             return;
         }
         var cstream = this.fileReadByLine(bib);
+        if (!cstream) {
+            return;
+        }
         var line = {};
         cstream.readLine(line); // read the whole file and put it in str.value
         line = line.value;
         cstream.close();
-        var ar = line.trim().split(" ");
+        var ar = line.trim() ? line.trim().split(/\s+/) : [];
         var info = 0;
         for ( var i = 0; i < ar.length; i++) {
             var zid = ar[i];
-            res = yield this.DB.queryAsync("SELECT * FROM keys WHERE zid=? AND bib=?",[zid,bib]);
+            if (!this.isValidZoteroItemKey(zid)) {
+                Zotero.debug("LyZ ignored invalid item key in BibTeX header: " + zid);
+                continue;
+            }
+            res = yield LyZDatabase.findKeyRecord(this, zid, bib);
 
             if (res.length === 0) {
                 info+=1;
                 // key=zid is not right, but it will be updated when updateBibtex is run
-                yield this.DB.queryAsync("INSERT INTO keys VALUES(null,?,?,?)",[zid,bib,zid]);
+                yield LyZDatabase.insertKey(this, zid, bib, zid);
             }
         }
         if (info > 0)
@@ -842,7 +779,7 @@ Zotero.Lyz = {
 
     dbDeleteBib: Zotero.Promise.coroutine(function*() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = yield this.DB.queryAsync("SELECT bib FROM keys GROUP BY bib");
+        var dic = yield LyZDatabase.listBibsFromKeys(this);
         var params = {
             inn : {
                 items : dic,
@@ -867,13 +804,12 @@ Zotero.Lyz = {
                           "Deleting LyZ database record");
         if (!res)
             return;
-        yield this.DB.queryAsync("DELETE FROM docs WHERE bib=?",[bib]);
-        yield this.DB.queryAsync("DELETE FROM keys WHERE bib=?",[bib]);
+        yield LyZDatabase.deleteBib(this, bib);
     }),
 
     dbDeleteDoc: Zotero.Promise.coroutine(function*(doc, bib) {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = yield this.DB.queryAsync("SELECT doc FROM docs");
+        var dic = yield LyZDatabase.listDocuments(this);
         var params = {
             inn : {
                 items : dic,
@@ -896,12 +832,12 @@ Zotero.Lyz = {
                           doc + "?");
         if (!res)
             return;
-        yield this.DB.queryAsync("DELETE FROM docs WHERE doc=?",[doc]);
+        yield LyZDatabase.deleteDocument(this, doc);
     }),
 
     dbRenameDoc: async function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = await this.DB.queryAsync("SELECT id,doc FROM docs");
+        var dic = await LyZDatabase.listDocumentRecords(this);
         var params = {
             inn : {
                 items : dic,
@@ -923,12 +859,12 @@ Zotero.Lyz = {
         newfname = newfname.replace(/\\/g, "/");
         if (!newfname)
             return;
-        await this.DB.queryAsync("UPDATE docs SET doc=? WHERE doc=?",[newfname,doc]);
+        await LyZDatabase.renameDocument(this, newfname, doc);
     },
 
     dbRenameBib: async function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = await this.DB.queryAsync("SELECT DISTINCT bib FROM docs");
+        var dic = await LyZDatabase.listDistinctBibs(this);
         var params = {
             inn : {
                 items : dic,
@@ -948,15 +884,11 @@ Zotero.Lyz = {
                                               bib, "Bibtex", "*.bib")
         if (!newfname)
             return;
-        await this.DB.queryAsync("UPDATE docs SET bib=? WHERE bib=?",[newfname,bib]);
-        await this.DB.queryAsync("UPDATE keys SET bib=? WHERE bib=?",[newfname,bib]);
+        await LyZDatabase.renameBib(this, newfname, bib);
     },
 
     shutdown: Zotero.Promise.coroutine(function*() {
-        if (Zotero.Lyz.DB) {
-            yield Zotero.Lyz.DB.closeDatabase(true)
-            Zotero.Lyz.DB = null
-        }
+        yield LyZDatabase.close(Zotero.Lyz);
         Zotero.Lyz.initialized = false
     }),
 
@@ -966,7 +898,7 @@ Zotero.Lyz = {
             this.prefs.setBoolPref('checkZotero5Migration', false)
             return
         }
-        res = yield this.DB.queryAsync("SELECT key FROM keys WHERE zid GLOB '0_*'")
+        res = yield LyZDatabase.listLegacyZoteroKeys(this)
         if (res.length === 0) {
             this.prefs.setBoolPref('checkZotero5Migration', false)
             return
@@ -1002,14 +934,13 @@ Zotero.Lyz = {
                       'indicates that the migration is complete.')
         }
 
-        var results = yield this.DB.queryAsync("SELECT key,bib,zid FROM keys WHERE zid GLOB '0_*'")
+        var results = yield LyZDatabase.listLegacyZoteroKeyRecords(this)
         var newZid, conflicts, finalKey, tmpDroppedKeys
         var droppedKeys = []
         for (let idx = 0; idx < results.length; idx++) {
             newZid = String(Zotero.Libraries.userLibraryID) + results[idx].zid.slice(1)
             finalKey = results[idx].key
-            conflicts = yield this.DB.queryAsync("SELECT key FROM keys WHERE zid=? AND bib=?",
-                                                 [newZid, results[idx].bib])
+            conflicts = yield LyZDatabase.findMigrationConflicts(this, newZid, results[idx].bib)
             if (conflicts.length > 0) {
                 tmpDroppedKeys = []
                 for (let jdx = 0; jdx < conflicts.length; jdx++) {
@@ -1020,15 +951,13 @@ Zotero.Lyz = {
                         tmpDroppedKeys.push(conflicts[jdx].key)
                     }
                 }
-                yield this.DB.queryAsync("DELETE FROM keys WHERE zid=? AND bib=?",
-                                         [newZid, results[idx].bib])
+                yield LyZDatabase.deleteKeyForZidAndBib(this, newZid, results[idx].bib)
                 for (let jdx = 0; jdx < tmpDroppedKeys.length; jdx++) {
                     droppedKeys.push([results[idx].bib, tmpDroppedKeys[jdx], finalKey])
                 }
             }
-            yield this.DB.queryAsync("UPDATE keys SET zid=?, key=? WHERE zid=? AND key=? AND bib=?",
-                                     [newZid, finalKey, results[idx].zid, results[idx].key,
-                                      results[idx].bib])
+            yield LyZDatabase.updateMigratedKey(this, newZid, finalKey, results[idx].zid, results[idx].key,
+                                                results[idx].bib)
         }
 
         this.prefs.setBoolPref('checkZotero5Migration', false)

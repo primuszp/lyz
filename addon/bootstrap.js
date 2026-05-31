@@ -20,6 +20,8 @@ var LyZBootstrap = {
         this.debug("init start: " + rootURI, true);
         this.installCompatibilityShims();
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/settings-service.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/database-service.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bibtex-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bootstrap-ui.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/lyx-server.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/lyz.js");
