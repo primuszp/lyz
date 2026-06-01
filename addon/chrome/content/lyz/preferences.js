@@ -176,7 +176,7 @@ var LyZ_Preferences = {
 
     showSaveStatus() {
         const status = document.getElementById("lyz-save-status");
-        status.value = "Settings saved: " + document.getElementById("lyz-lyxserver").value;
+        status.value = LyZLocale.getString("lyz-pref-settings-saved", { server: document.getElementById("lyz-lyxserver").value });
         status.hidden = false;
         if (this.saveStatusTimer) {
             clearTimeout(this.saveStatusTimer);

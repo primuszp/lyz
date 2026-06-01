@@ -56,18 +56,18 @@ var LyZBootstrapUI = {
     },
 
     appendToolbarCommandItems(doc, popup, bootstrap) {
-        this.appendMenuItem(doc, popup, "lyz-send", "Cite in LyX", () => bootstrap.runCommandSync("checkAndCite"), "Send citation to LyX");
-        this.appendMenuItem(doc, popup, "lyz-update-bibtex", "Update BibTeX", () => bootstrap.runCommandSync("updateBibtexAll"), "Update modified items in BibTeX file");
+        this.appendMenuItem(doc, popup, "lyz-send", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommandSync("checkAndCite"), LyZLocale.getAttribute("lyz-cite-label", "tooltiptext"));
+        this.appendMenuItem(doc, popup, "lyz-update-bibtex", LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommandSync("updateBibtexAll"), LyZLocale.getAttribute("lyz-update-bibtex-label", "tooltiptext"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-delete-bib", "Delete BibTeX record...", () => bootstrap.runCommandSync("dbDeleteBib"));
-        this.appendMenuItem(doc, popup, "lyz-delete-doc", "Delete LyX document record...", () => bootstrap.runCommandSync("dbDeleteDoc"));
+        this.appendMenuItem(doc, popup, "lyz-delete-bib", LyZLocale.getAttribute("lyz-delete-bib-label", "label"), () => bootstrap.runCommandSync("dbDeleteBib"));
+        this.appendMenuItem(doc, popup, "lyz-delete-doc", LyZLocale.getAttribute("lyz-delete-doc-label", "label"), () => bootstrap.runCommandSync("dbDeleteDoc"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-rename-bib", "Rename BibTeX record...", () => bootstrap.runCommandSync("dbRenameBib"));
-        this.appendMenuItem(doc, popup, "lyz-rename-doc", "Rename LyX document record...", () => bootstrap.runCommandSync("dbRenameDoc"));
+        this.appendMenuItem(doc, popup, "lyz-rename-bib", LyZLocale.getAttribute("lyz-rename-bib-label", "label"), () => bootstrap.runCommandSync("dbRenameBib"));
+        this.appendMenuItem(doc, popup, "lyz-rename-doc", LyZLocale.getAttribute("lyz-rename-doc-label", "label"), () => bootstrap.runCommandSync("dbRenameDoc"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-settings", "Settings...", () => bootstrap.runCommandSync("settings"));
+        this.appendMenuItem(doc, popup, "lyz-settings", LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommandSync("settings"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-test", "LyX command...", () => bootstrap.runCommandSync("test"));
+        this.appendMenuItem(doc, popup, "lyz-test", LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommandSync("test"));
     },
 
     addToolsMenuFallback(doc, bootstrap) {
@@ -83,7 +83,7 @@ var LyZBootstrapUI = {
         }
         const menu = this.createXULElement(doc, "menu", {
             id: "lyz-tools-fallback-menu",
-            label: "LyZ"
+            label: LyZLocale.getAttribute("lyz-menu-label", "label")
         });
         const popup = this.createXULElement(doc, "menupopup", { id: "lyz-tools-fallback-popup" });
         menu.appendChild(popup);
@@ -104,23 +104,23 @@ var LyZBootstrapUI = {
             return;
         }
         itemMenu.appendChild(this.createXULElement(doc, "menuseparator", { id: "lyz-context-separator" }));
-        this.appendMenuItem(doc, itemMenu, "lyz-context-cite", "Cite in LyX", () => bootstrap.runCommand("checkAndCite"));
+        this.appendMenuItem(doc, itemMenu, "lyz-context-cite", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommand("checkAndCite"));
         bootstrap.debug("DOM fallback: item context menu inserted");
     },
 
     appendLyzCommandItems(doc, popup, prefix, bootstrap) {
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-cite`, "Cite in LyX", () => bootstrap.runCommand("checkAndCite"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-update-bibtex`, "Update BibTeX", () => bootstrap.runCommand("updateBibtexAll"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-cite`, LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommand("checkAndCite"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-update-bibtex`, LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommand("updateBibtexAll"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-bib`, "Delete BibTeX record...", () => bootstrap.runCommand("dbDeleteBib"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-doc`, "Delete LyX document record...", () => bootstrap.runCommand("dbDeleteDoc"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-bib`, LyZLocale.getAttribute("lyz-delete-bib-label", "label"), () => bootstrap.runCommand("dbDeleteBib"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-doc`, LyZLocale.getAttribute("lyz-delete-doc-label", "label"), () => bootstrap.runCommand("dbDeleteDoc"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-bib`, "Rename BibTeX record...", () => bootstrap.runCommand("dbRenameBib"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-doc`, "Rename LyX document record...", () => bootstrap.runCommand("dbRenameDoc"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-bib`, LyZLocale.getAttribute("lyz-rename-bib-label", "label"), () => bootstrap.runCommand("dbRenameBib"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-doc`, LyZLocale.getAttribute("lyz-rename-doc-label", "label"), () => bootstrap.runCommand("dbRenameDoc"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-settings`, "Settings...", () => bootstrap.runCommand("settings"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-settings`, LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommand("settings"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-test`, "LyX command...", () => bootstrap.runCommand("test"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-test`, LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommand("test"));
     },
 
     removeFromWindow(window, bootstrap) {

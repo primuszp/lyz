@@ -1,7 +1,152 @@
-#lyz-menu-button  {
-	list-style-image: url('chrome://lyz/skin/lyz.svg');
-	-moz-context-properties: fill, fill-opacity;
-	fill: currentColor;
+/* ============================================================
+   LyZ — Zotero 7-9 overlay stylesheet
+   CSS custom-property tokens follow the Zotero 7 design system
+   with sensible fallbacks for older Zotero versions.
+   ============================================================ */
+
+
+/* ── Toolbar button ─────────────────────────────────────────── */
+
+#lyz-menu-button {
+    list-style-image: url("chrome://lyz/skin/lyz.svg");
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+    fill-opacity: 0.8;
+    transition: fill-opacity 0.1s ease;
+}
+
+#lyz-menu-button:hover {
+    fill-opacity: 1;
+}
+
+#lyz-menu-button[open="true"],
+#lyz-menu-button:active {
+    fill-opacity: 1;
+}
+
+/* Icon inside the toolbar button dropdown arrow area */
+#lyz-menu-button .toolbarbutton-icon {
+    width: 16px;
+    height: 16px;
 }
 
 
+/* ── Preferences pane ───────────────────────────────────────── */
+
+#lyz-prefpane {
+    padding: 8px 0;
+    font-size: var(--zotero-font-size, 12px);
+}
+
+#lyz-prefpane .main-section {
+    padding: 0 4px;
+}
+
+/* Groupbox cards */
+#lyz-prefpane groupbox {
+    margin-block-end: 14px;
+    padding: 10px 14px 14px;
+    border: 1px solid var(--zotero-border-color,
+                         var(--groupbox-border-color,
+                         color-mix(in srgb, currentColor 18%, transparent)));
+    border-radius: 6px;
+    background-color: transparent;
+}
+
+/* Section headings (h2 inside groupbox labels) */
+#lyz-prefpane groupbox > label > h2 {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    color: var(--color-text, inherit);
+}
+
+/* Description/help text */
+#lyz-prefpane description {
+    margin-block-start: 6px;
+    font-size: 0.85em;
+    opacity: 0.75;
+    white-space: normal;
+}
+
+/* Labels for inputs */
+#lyz-prefpane label:not(groupbox > label) {
+    margin-block-end: 3px;
+}
+
+
+/* ── Input fields ───────────────────────────────────────────── */
+
+.lyz-text-input,
+#lyz-lyxserver,
+#lyz-citekey {
+    flex: 1;
+    min-width: 28em;
+    /* remove inline min-width when possible; keep it as fallback */
+    border: 1px solid var(--zotero-border-color,
+                         var(--input-border-color, #b0b0b0));
+    border-radius: 4px;
+    padding: 3px 7px;
+    background-color: var(--color-background,
+                          var(--input-background-color, Field));
+    color: var(--color-text, FieldText);
+    font: inherit;
+    transition: border-color 0.1s ease, box-shadow 0.1s ease;
+}
+
+.lyz-text-input:focus,
+#lyz-lyxserver:focus,
+#lyz-citekey:focus {
+    border-color: var(--color-accent, var(--zotero-accent-color, #2f7de1));
+    box-shadow: 0 0 0 2px color-mix(in srgb,
+                    var(--color-accent, var(--zotero-accent-color, #2f7de1)) 25%,
+                    transparent);
+    outline: none;
+}
+
+
+/* ── Save status label ──────────────────────────────────────── */
+
+#lyz-save-status {
+    margin-block-start: 5px;
+    font-size: 0.82em;
+    color: var(--color-accent, var(--zotero-accent-color, #2f7de1));
+    padding: 1px 0;
+}
+
+
+/* ── Save / action buttons alignment ───────────────────────── */
+
+#lyz-save {
+    margin-inline-start: 6px;
+    min-width: max-content;
+}
+
+
+/* ── Menulist (dropdowns) ───────────────────────────────────── */
+
+#lyz-citekey-mode,
+#lyz-format-menu {
+    margin-inline-start: 8px;
+}
+
+
+/* ── Dark-mode adjustments ──────────────────────────────────── */
+/*
+   Zotero 7 uses a prefers-color-scheme media query AND its own
+   internal dark-mode class. Both are covered here.
+*/
+
+@media (prefers-color-scheme: dark) {
+    .lyz-text-input,
+    #lyz-lyxserver,
+    #lyz-citekey {
+        border-color: var(--zotero-border-color, rgba(255, 255, 255, 0.2));
+        background-color: var(--color-background, rgba(255, 255, 255, 0.06));
+        color: var(--color-text, inherit);
+    }
+
+    #lyz-prefpane groupbox {
+        border-color: var(--zotero-border-color, rgba(255, 255, 255, 0.12));
+    }
+}

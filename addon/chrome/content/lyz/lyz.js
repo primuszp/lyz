@@ -160,7 +160,7 @@ Zotero.Lyz = {
             lyxfile.initWithPath(doc);
         }
         if (!lyxfile.exists()) {
-            win.alert("The specified " + doc + " does not exist.");
+            win.alert(LyZLocale.getString("lyz-msg-file-not-exist", { doc }));
             return;
         }
         //remove old backup file
@@ -172,13 +172,13 @@ Zotero.Lyz = {
                 tmpfile.remove(1);
             }
         } catch (e) {
-            win.alert("Please report the following error:\n" + e);
+            win.alert(LyZLocale.getString("lyz-msg-report-error", { error: String(e) }));
             return;
         }
         // make new backup
         lyxfile.copyTo(null, lyxfile.leafName + ".lyz~");
         // that main procedure
-        win.alert("Updating " + doc);
+        win.alert(LyZLocale.getString("lyz-msg-updating-doc", { doc }));
         try {
             cstream = this.fileReadByLine(doc + ".lyz~");
             outstream = this.fileWrite(doc)[1];
@@ -203,7 +203,7 @@ Zotero.Lyz = {
 
             cstream.close();
         } catch (e) {
-            win.alert("Please report the following error:\n" + e);
+            win.alert(LyZLocale.getString("lyz-msg-report-error", { error: String(e) }));
             var oldfile = Components.classes["@mozilla.org/file/local;1"]
                     .createInstance(Components.interfaces.nsIFile);
             oldfile.initWithPath(doc);
@@ -221,7 +221,7 @@ Zotero.Lyz = {
         if (!this.replace) {//will append to the file
             var bib_backup = this.fileBackup(bib);
             if (!bib_backup) {
-                win.alert("Backup failed.");
+                win.alert(LyZLocale.getString("lyz-msg-backup-failed"));
                 return;
             }
             cstream = this.fileReadByLine(bib_backup);
@@ -366,7 +366,7 @@ Zotero.Lyz = {
                 .createInstance(Components.interfaces.nsIFile);
         file.initWithPath(path);
         if (!file.exists()) {
-            win.alert("File " + path + " does not exist.");
+            win.alert(LyZLocale.getString("lyz-msg-file-path-not-exist", { path }));
             return;
         }
         var file_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
@@ -414,9 +414,9 @@ Zotero.Lyz = {
 
     test: function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var command = this.prompt("Command", "server-get-filename", "LyZ Command");
+        var command = this.prompt(LyZLocale.getString("lyz-cmd-prompt"), LyZLocale.getString("lyz-cmd-default"), LyZLocale.getString("lyz-cmd-title"));
         if (!command) {
-            this.alert("No LyX command entered.", "LyZ Command");
+            this.alert(LyZLocale.getString("lyz-cmd-no-command"), LyZLocale.getString("lyz-cmd-title"));
             return;
         }
         try {
@@ -427,21 +427,19 @@ Zotero.Lyz = {
                 response = this._lyxAskServer(command);
             }
             if (!response) {
-                this.alert("No response from LyX server.", "LyZ Command");
+                this.alert(LyZLocale.getString("lyz-cmd-no-response"), LyZLocale.getString("lyz-cmd-title"));
                 return;
             }
             var parsed = this.parseLyXServerResponse(command, response);
             if (parsed) {
-                this.alert("LyX response for " + command + ":\n\n" + parsed, "LyZ Command");
+                this.alert(LyZLocale.getString("lyz-cmd-response", { command, parsed }), LyZLocale.getString("lyz-cmd-title"));
             } else if (response.indexOf(":" + command + ":") >= 0) {
-                this.alert("LyX responded to " + command + ", but returned an empty value.\n\n"
-                    + "If this was server-get-filename, make sure the LyX document is saved to disk and active.",
-                    "LyZ Command");
+                this.alert(LyZLocale.getString("lyz-cmd-empty-response", { command }), LyZLocale.getString("lyz-cmd-title"));
             } else {
-                this.alert("Raw LyX response for " + command + ":\n\n" + response, "LyZ Command");
+                this.alert(LyZLocale.getString("lyz-cmd-raw-response", { command, response }), LyZLocale.getString("lyz-cmd-title"));
             }
         } catch (e) {
-            this.alert("Error connecting to lyxserver...\n" + e + "\nTry again.", "LyZ Command");
+            this.alert(LyZLocale.getString("lyz-cmd-error", { error: String(e) }), LyZLocale.getString("lyz-cmd-title"));
         }
     },
 
@@ -450,7 +448,7 @@ Zotero.Lyz = {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         doc = this.lyxGetDoc();
         if (!doc) {
-            win.alert("Could not retrieve document name.");
+            win.alert(LyZLocale.getString("lyz-msg-could-not-retrieve-doc"));
             return null;
         }
         res = await LyZDatabase.getDocumentRecord(this, doc);
@@ -480,16 +478,13 @@ Zotero.Lyz = {
     },
 
     selectBibForDocument: async function(win, doc) {
-        var t = "Press OK to create new BibTeX database.\n";
-        t += "Press Cancel to select from your existing databases\n";
-
-        var createNew = this.confirm(t, "LyZ BibTeX Database");
+        var createNew = this.confirm(LyZLocale.getString("lyz-msg-select-bibtex-new"), LyZLocale.getString("lyz-msg-select-bibtex-new-title"));
         if (createNew) {
             return await this.dialog_FilePickerSave(win,
-                    "Select Bibtex file for " + doc, "Bibtex", "*.bib");
+                    LyZLocale.getString("lyz-msg-select-bibtex-file", { doc }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib");
         }
         return await this.dialog_FilePickerOpen(win,
-                "Select Bibtex file for " + doc, "Bibtex", "*.bib");
+                LyZLocale.getString("lyz-msg-select-bibtex-file", { doc }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib");
     },
 
     exportToBibtex: Zotero.Promise.coroutine(function*(items, bib, zids) {
@@ -538,7 +533,7 @@ Zotero.Lyz = {
         var zitems = win.ZoteroPane.getSelectedItems();
         // FIXME: this should be called bellow, but it returns empty there (???)
         if (!zitems.length) {
-            win.alert("Please select at least one citation.");
+            win.alert(LyZLocale.getString("lyz-msg-select-citation"));
             return;
         }
         // check document name
@@ -566,22 +561,16 @@ Zotero.Lyz = {
             var useExistingBib;
             if (!this.fileExists(bib)) {
                 useExistingBib = this.confirm(
-                    "Active LyX document:\n" + doc + "\n\n" +
-                    "LyZ links it to this BibTeX database, but the file is missing:\n" + bib + "\n\n" +
-                    "Press OK to recreate the missing BibTeX file from LyZ records.\n" +
-                    "Press Cancel to choose or create a different BibTeX database for this document.",
-                    "LyZ BibTeX database missing");
+                    LyZLocale.getString("lyz-msg-bibtex-missing", { doc, bib }),
+                    LyZLocale.getString("lyz-msg-bibtex-missing-title"));
                 if (useExistingBib) {
                     this.replace = true;
                     recreateMissingBib = true;
                 }
             } else {
                 useExistingBib = this.confirm(
-                    "Active LyX document:\n" + doc + "\n\n" +
-                    "LyZ currently links it to this BibTeX database:\n" + bib + "\n\n" +
-                    "Press OK to use this BibTeX database.\n" +
-                    "Press Cancel to choose or create a different BibTeX database for this document.",
-                    "LyZ BibTeX database");
+                    LyZLocale.getString("lyz-msg-bibtex-exists", { doc, bib }),
+                    LyZLocale.getString("lyz-msg-bibtex-exists-title"));
             }
             if (!useExistingBib) {
                 var newBib = await this.selectBibForDocument(win, doc);
@@ -615,10 +604,8 @@ Zotero.Lyz = {
             } else if (res[0].key != citekey) {
                 var ask = win
                         .confirm(
-                                "Zotero record has been changed.\n" +
-                                "Press OK to run 'Update BibTeX' and insert the citation.\n" +
-                                "Press Cancel to refrain from any action.",
-                                "Zotero record changed!");
+                                LyZLocale.getString("lyz-msg-record-changed"),
+                                LyZLocale.getString("lyz-msg-record-changed-title"));
                 if (ask) {
                     // FIXME: started to act weird
                     var xy = this.lyxGetPos();
@@ -659,16 +646,13 @@ Zotero.Lyz = {
         var doc = res[1];
         var bib = res[0];
         if (!bib) {
-            win.alert("There is no BibTeX database associated with the active LyX document: " +
-                      doc);
+            win.alert(LyZLocale.getString("lyz-msg-no-bibtex-for-doc", { doc }));
             return;
         }
         var citekey = this.prefs.getCharPref("citekey");
 
         
-        var p = win.confirm("You are going to update BibTeX database:\n\n" +
-                            bib + "\n\nCurrent BibTex key format \"" + citekey +
-                            "\" will be used.\nDo you want to continue?");
+        var p = win.confirm(LyZLocale.getString("lyz-msg-confirm-update-bibtex", { bib, citekey }));
         if (p) {
             // get all ids for the bibtex file
             var ids_h = yield LyZDatabase.getKeysForBib(this, bib);
@@ -688,8 +672,7 @@ Zotero.Lyz = {
                 oldkeys[ids_h[i].key] = zid;
             }
             if (!ids.length) {
-                win.alert("No valid Zotero item records were found for this BibTeX database.\n\n"
-                    + "The LyZ database may contain stale records from an older or malformed BibTeX header.");
+                win.alert(LyZLocale.getString("lyz-msg-no-valid-items"));
                 return;
             }
 
@@ -703,7 +686,7 @@ Zotero.Lyz = {
                 newkeys[id] = ex[id][0];
             }
             if (!(oldkeys.length == newkeys.length)) {
-                win.alert("Aborting");
+                win.alert(LyZLocale.getString("lyz-msg-aborting"));
                 return;
             }
             this.replace = true;
@@ -714,11 +697,7 @@ Zotero.Lyz = {
             }
             this.writeBib(bib, text, zids);
             res = win
-                    .confirm("Your BibTeX database " + bib +
-                             " has been updated.\n" +
-                             "Do you also want to update the associated LyX documents?\n" +
-                             "This is only necessary when any author, title or year has been modified,\n" +
-                             "or when the BibTex key format has been changed.");
+                    .confirm(LyZLocale.getString("lyz-msg-confirm-update-lyx-docs", { bib }));
             if (!res)
                 return;
             
@@ -746,7 +725,7 @@ Zotero.Lyz = {
         var doc = res[1];
         var bib = res[0];
         if (!bib) {
-            win.alert("There is no BibTeX database associated with the active LyX document: "+ doc);
+            win.alert(LyZLocale.getString("lyz-msg-no-bibtex-for-doc", { doc }));
             return;
         }
         var cstream = this.fileReadByLine(bib);
@@ -774,7 +753,7 @@ Zotero.Lyz = {
             }
         }
         if (info > 0)
-            win.alert(info + " item(s) changed or added.");
+            win.alert(LyZLocale.getString("lyz-msg-items-changed", { count: String(info) }));
     }),
 
     dbDeleteBib: Zotero.Promise.coroutine(function*() {
@@ -798,10 +777,8 @@ Zotero.Lyz = {
         if (!bib) {
             return
         }
-        res = win.confirm("You are about to delete record of BibTeX database:\n" +
-                          bib +
-                          "\nRecord about associated documents will also be deleted.\n",
-                          "Deleting LyZ database record");
+        res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-bib", { bib }),
+                          LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!res)
             return;
         yield LyZDatabase.deleteBib(this, bib);
@@ -828,8 +805,7 @@ Zotero.Lyz = {
         if (!doc) {
             return
         }
-        res = win.confirm("Do you really want to delete the LyZ database record of the document\n" +
-                          doc + "?");
+        res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }));
         if (!res)
             return;
         yield LyZDatabase.deleteDocument(this, doc);
@@ -854,7 +830,7 @@ Zotero.Lyz = {
             doc = params.out.item;
         }
         var newfname = await this.dialog_FilePickerOpen(win,
-                "Select LyX document for " + doc, "LyX", "*.lyx")
+                LyZLocale.getString("lyz-msg-select-lyx-doc", { doc }), LyZLocale.getString("lyz-msg-lyx-filter"), "*.lyx")
         // have to replace \ with / on windows because lyxserver returns unix style paths
         newfname = newfname.replace(/\\/g, "/");
         if (!newfname)
@@ -880,8 +856,8 @@ Zotero.Lyz = {
         if (params.out) {
             bib = params.out.item;
         }
-        newfname = await this.dialog_FilePickerOpen(win, "Select Bibtex file for " +
-                                              bib, "Bibtex", "*.bib")
+        newfname = await this.dialog_FilePickerOpen(win,
+                LyZLocale.getString("lyz-msg-select-bibtex-file", { doc: bib }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib")
         if (!newfname)
             return;
         await LyZDatabase.renameBib(this, newfname, bib);
@@ -911,27 +887,19 @@ Zotero.Lyz = {
         var doNotShow = { value: false }
         var pressedOK = prompts.confirmCheck(
             null,
-            'LyZ: legacy database detected',
-            'LyZ has detected Zotero 4.0 entries in its database. These entries will prevent LyZ ' +
-                'from creating a .bib file. Do you want LyZ to try to update the ' +
-                'entries to match Zotero 5 items? Consider backing up your Zotero data directory ' +
-                'before doing so. It can be accessed from the "Files and Folders" in the ' +
-                'Advanced section of Zotero\'s preferences. Some cite keys may change during ' +
-                'this process.',
-            'Do not show this prompt in the future',
+            LyZLocale.getString("lyz-msg-migration-title"),
+            LyZLocale.getString("lyz-msg-migration-body"),
+            LyZLocale.getString("lyz-msg-migration-checkbox"),
             doNotShow)
         var win = this.wm.getMostRecentWindow("navigator:browser");
         if (!pressedOK) {
             if (doNotShow.value === true) {
-                win.alert('To show this dialog again in the future, reset ' +
-                          'extensions.lyz.checkZotero5Migration in the config editor available ' +
-                          'in Zotero\'s Advanced preferences section.')
+                win.alert(LyZLocale.getString("lyz-msg-migration-reset"))
                 this.prefs.setBoolPref('checkZotero5Migration', false)
             }
             return
         } else {
-            win.alert('LyZ database migration will begin now. Do not exit Zotero until Lyz ' +
-                      'indicates that the migration is complete.')
+            win.alert(LyZLocale.getString("lyz-msg-migration-start"))
         }
 
         var results = yield LyZDatabase.listLegacyZoteroKeyRecords(this)
@@ -979,7 +947,7 @@ Zotero.Lyz = {
                            report)
         } else {
             win = this.wm.getMostRecentWindow("navigator:browser")
-            win.alert('Lyz migration complete. No citation keys were changed.')
+            win.alert(LyZLocale.getString("lyz-msg-migration-complete"))
         }
     })
 };

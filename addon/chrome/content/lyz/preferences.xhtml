@@ -2,44 +2,45 @@
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
   onload="Zotero_Preferences.LyZ_Preferences.init()">
+  <html:link rel="localization" href="chrome://lyz/locale/lyz.ftl"/>
   <vbox class="main-section">
-  <groupbox id="lyz-prefpane-server" aria-label="LyX Server">
-    <label><html:h2>LyX Server</html:h2></label>
-    <label value="Pipe path" control="lyz-lyxserver"/>
+  <groupbox id="lyz-prefpane-server" data-l10n-id="lyz-pref-lyxserver-group">
+    <label><html:h2 data-l10n-id="lyz-pref-lyxserver-heading"></html:h2></label>
+    <label data-l10n-id="lyz-pref-pipe-path" control="lyz-lyxserver"/>
     <hbox align="center" flex="1">
-      <html:input id="lyz-lyxserver" type="text" preference="extensions.lyz.lyxserver" style="flex: 1; min-width: 32em;"
+      <html:input id="lyz-lyxserver" type="text" preference="extensions.lyz.lyxserver" class="lyz-text-input"
         oninput="Zotero_Preferences.LyZ_Preferences.save(false)"
         onchange="Zotero_Preferences.LyZ_Preferences.save(true)"/>
-      <button id="lyz-save" label="Save Settings" oncommand="Zotero_Preferences.LyZ_Preferences.save(true)"/>
+      <button id="lyz-save" data-l10n-id="lyz-pref-save-settings" oncommand="Zotero_Preferences.LyZ_Preferences.save(true)"/>
     </hbox>
     <label id="lyz-save-status" value="" hidden="true"/>
-    <description>Windows default: \\.\pipe\lyxpipe. Linux/macOS examples usually end in lyxpipe.</description>
+    <description data-l10n-id="lyz-pref-server-description"/>
   </groupbox>
 
-  <groupbox id="lyz-prefpane-citekey" aria-label="Citation Keys">
-    <label><html:h2>Citation Keys</html:h2></label>
+  <groupbox id="lyz-prefpane-citekey" data-l10n-id="lyz-pref-citation-keys-group">
+    <label><html:h2 data-l10n-id="lyz-pref-citation-keys-heading"></html:h2></label>
     <hbox align="center">
-      <label value="Key source" control="lyz-citekey-mode"/>
+      <label data-l10n-id="lyz-pref-key-source" control="lyz-citekey-mode"/>
       <menulist id="lyz-citekey-mode" native="true" oncommand="Zotero_Preferences.LyZ_Preferences.onCiteKeyModeChanged(true)">
         <menupopup>
-          <menuitem label="Custom pattern" value="custom"/>
-          <menuitem label="Zotero library/key" value="zotero"/>
-          <menuitem label="Zotero item key only" value="zoteroShort"/>
-          <menuitem label="Translator generated" value="translator"/>
+          <menuitem data-l10n-id="lyz-pref-citekey-mode-custom" value="custom"/>
+          <menuitem data-l10n-id="lyz-pref-citekey-mode-zotero" value="zotero"/>
+          <menuitem data-l10n-id="lyz-pref-citekey-mode-zotero-short" value="zoteroShort"/>
+          <menuitem data-l10n-id="lyz-pref-citekey-mode-translator" value="translator"/>
         </menupopup>
       </menulist>
     </hbox>
-    <label value="Custom pattern" control="lyz-citekey"/>
-    <html:input id="lyz-citekey" type="text" preference="extensions.lyz.citekey" style="min-width: 32em;"
+    <label data-l10n-id="lyz-pref-custom-pattern" control="lyz-citekey"/>
+    <html:input id="lyz-citekey" type="text" preference="extensions.lyz.citekey" class="lyz-text-input"
       oninput="Zotero_Preferences.LyZ_Preferences.save(false)"
       onchange="Zotero_Preferences.LyZ_Preferences.save(true)"/>
-    <description>Use keywords separated by spaces: author year title zotero zoteroShort. Example: author _ title _ year.</description>
+    <description data-l10n-id="lyz-pref-custom-pattern-desc"/>
   </groupbox>
 
-  <groupbox id="lyz-prefpane-export" aria-label="BibTeX Export">
-    <label><html:h2>BibTeX Export</html:h2></label>
+  <groupbox id="lyz-prefpane-export" data-l10n-id="lyz-pref-bibtex-export-group">
+    <label><html:h2 data-l10n-id="lyz-pref-bibtex-export-heading"></html:h2></label>
     <hbox align="center">
-      <label value="Export translator" control="lyz-format-menu"/>
+      <label data-l10n-id="lyz-pref-export-translator" control="lyz-format-menu"/>
       <menulist id="lyz-format-menu" native="true" preference="extensions.lyz.selectedTranslator"
         oncommand="Zotero_Preferences.LyZ_Preferences.save(true)">
         <menupopup id="lyz-format-popup">
@@ -47,10 +48,10 @@
         </menupopup>
       </menulist>
     </hbox>
-    <checkbox id="lyz-journalabbrev" label="Use journal abbreviations" native="true"
+    <checkbox id="lyz-journalabbrev" data-l10n-id="lyz-pref-journal-abbrev" native="true"
       preference="extensions.lyz.useJournalAbbreviation"
       oncommand="Zotero_Preferences.LyZ_Preferences.save(true)"/>
-    <description>The default Zotero installation normally provides BibTeX. Additional BibTeX-compatible exporters appear here if installed.</description>
+    <description data-l10n-id="lyz-pref-bibtex-translators-desc"/>
   </groupbox>
   </vbox>
 </vbox>

@@ -1,0 +1,9 @@
+<!ENTITY cite "In LyX zitieren">
+<!ENTITY settings "Einstellungen...">
+<!ENTITY about "Über...">
+<!ENTITY update-bibtex "BibTeX aktualisieren">
+<!ENTITY check-bibtex "Von BibTeX aktualisieren">
+<!ENTITY delete-bib "BibTeX-Eintrag löschen...">
+<!ENTITY delete-doc "LyX-Dokument-Eintrag löschen...">
+<!ENTITY rename-bib "BibTeX-Eintrag umbenennen...">
+<!ENTITY rename-doc "LyX-Dokument-Eintrag umbenennen...">

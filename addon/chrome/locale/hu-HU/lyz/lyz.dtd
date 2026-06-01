@@ -1,0 +1,9 @@
+<!ENTITY cite "Hivatkozás LyX-be">
+<!ENTITY settings "Beállítások...">
+<!ENTITY about "Névjegy...">
+<!ENTITY update-bibtex "BibTeX frissítése">
+<!ENTITY check-bibtex "Frissítés BibTeX-ből">
+<!ENTITY delete-bib "BibTeX bejegyzés törlése...">
+<!ENTITY delete-doc "LyX dokumentum bejegyzés törlése...">
+<!ENTITY rename-bib "BibTeX bejegyzés átnevezése...">
+<!ENTITY rename-doc "LyX dokumentum bejegyzés átnevezése...">

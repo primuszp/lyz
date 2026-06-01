@@ -12,7 +12,7 @@ var LyZServer = {
         return lyz.prefs.getCharPref("lyxserver");
     },
 
-    alert(message, title = "LyZ Server") {
+    alert(message, title = LyZLocale.getString("lyz-server-title")) {
         Services.prompt.alert(null, title, message);
     },
 
@@ -33,18 +33,17 @@ var LyZServer = {
             res = this.askServerWithOpenStream(lyz, "server-get-filename");
         }
         if (!res) {
-            this.alert("Could not contact server at: " + this.getPipePath(lyz));
+            this.alert(LyZLocale.getString("lyz-server-no-contact", { path: this.getPipePath(lyz) }));
             return null;
         }
 
         fname = this.parseResponse("server-get-filename", res);
         if (fname === null) {
-            this.alert("ERROR: lyxGetDoc: \n\n" + res);
+            this.alert(LyZLocale.getString("lyz-server-error", { response: res }));
             return null;
         }
         if (!fname) {
-            this.alert("LyX responded, but did not return an active filename.\n\n"
-                + "Make sure the LyX document is saved and the document window is active.");
+            this.alert(LyZLocale.getString("lyz-server-no-filename"));
             return null;
         }
         return fname;
@@ -159,7 +158,7 @@ var LyZServer = {
         path = this.getPipePath(lyz);
         pipeout.initWithPath(path + ".out");
         if (!pipeout.exists()) {
-            this.alert("The specified LyXServer pipe does not exist.");
+            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist"));
             return null;
         }
         pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
@@ -181,12 +180,12 @@ var LyZServer = {
                     .createInstance(Components.interfaces.nsIFile);
             pipein.initWithPath(this.getPipePath(lyz) + ".in");
         } catch (e) {
-            this.alert("Wrong path to Lyx server:\n" + this.getPipePath(lyz) + "\n" + e);
+            this.alert(LyZLocale.getString("lyz-server-wrong-path", { path: this.getPipePath(lyz), error: String(e) }));
             return false;
         }
 
         if (!pipein.exists()) {
-            this.alert("Wrong path to Lyx server.\nSet the path specified in Lyx preferences.");
+            this.alert(LyZLocale.getString("lyz-server-wrong-path-hint"));
             return false;
         }
 
@@ -195,7 +194,7 @@ var LyZServer = {
                     .createInstance(Components.interfaces.nsIFileOutputStream);
             pipein_stream.init(pipein, 0x02 | 0x10, 0666, 0);
         } catch (e) {
-            this.alert("Failed to:\n" + command);
+            this.alert(LyZLocale.getString("lyz-server-command-failed", { command }));
             return false;
         }
 
@@ -214,7 +213,7 @@ var LyZServer = {
                 .createInstance(Components.interfaces.nsIFile);
         pipeout.initWithPath(this.getPipePath(lyz) + ".out");
         if (!pipeout.exists()) {
-            this.alert("The specified LyXServer pipe does not exist.");
+            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist"));
             return null;
         }
         var pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
@@ -236,7 +235,7 @@ var LyZServer = {
         try {
             return this.writeAndRead(lyz, command);
         } catch (x) {
-            this.alert("SERVER ERROR:\n" + x);
+            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return false;
         }
     },
@@ -251,12 +250,12 @@ var LyZServer = {
             .createInstance(Components.interfaces.nsIFile);
             pipein.initWithPath(this.getPipePath(lyz) + ".in");
         } catch (e) {
-            this.alert("Wrong path to Lyx server:\n" + this.getPipePath(lyz) + "\n" + e);
+            this.alert(LyZLocale.getString("lyz-server-wrong-path", { path: this.getPipePath(lyz), error: String(e) }));
             return false;
         }
 
         if (!pipein.exists()) {
-            this.alert("Wrong path to Lyx server.\nSet the path specified in Lyx preferences.");
+            this.alert(LyZLocale.getString("lyz-server-wrong-path-hint"));
             return false;
         }
 
@@ -265,7 +264,7 @@ var LyZServer = {
             .createInstance(Components.interfaces.nsIFileOutputStream);
             pipein_stream.init(pipein, 0x02 | 0x10, 0666, 0);
         } catch (e) {
-            this.alert("Failed to:\n" + command);
+            this.alert(LyZLocale.getString("lyz-server-command-failed", { command }));
             return false;
         }
 
@@ -296,13 +295,13 @@ var LyZServer = {
         try {
             cstream = this.pipeInit(lyz);
         } catch (x) {
-            this.alert("SERVER ERROR:\n" + x);
+            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return null;
         }
         try {
             return this.writeAndReadWithOpenStream(lyz, command, cstream);
         } catch (x) {
-            this.alert("SERVER ERROR:\n" + x);
+            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return null;
         }
     }

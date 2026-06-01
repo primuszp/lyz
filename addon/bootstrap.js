@@ -19,6 +19,7 @@ var LyZBootstrap = {
         this.rootURI = rootURI;
         this.debug("init start: " + rootURI, true);
         this.installCompatibilityShims();
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/locale-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/settings-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/database-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bibtex-service.js");
@@ -101,6 +102,8 @@ var LyZBootstrap = {
         this.chromeHandle = aomStartup.registerChrome(manifestURI, [
             ["content", "lyz", "chrome/content/lyz/"],
             ["locale", "lyz", "en-US", "chrome/locale/en-US/lyz/"],
+            ["locale", "lyz", "de-DE", "chrome/locale/de-DE/lyz/"],
+            ["locale", "lyz", "hu-HU", "chrome/locale/hu-HU/lyz/"],
             ["skin", "lyz", "default", "chrome/skin/default/lyz/"]
         ]);
         this.debug("chrome registered");
@@ -123,7 +126,7 @@ var LyZBootstrap = {
                 menus: [
                     {
                         menuType: "submenu",
-                        onShowing: (event, context) => this.setMenuLabel(context, "LyZ"),
+                        onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-menu-label", "label")),
                         menus: this.getMenuItems()
                     }
                 ]
@@ -142,7 +145,7 @@ var LyZBootstrap = {
                 menus: [
                     {
                         menuType: "menuitem",
-                        onShowing: (event, context) => this.setMenuLabel(context, "Cite in LyX"),
+                        onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-cite-label", "label")),
                         onCommand: () => this.runCommand("checkAndCite")
                     }
                 ]
@@ -176,6 +179,7 @@ var LyZBootstrap = {
                 image: "chrome/skin/default/lyz/lyz.svg",
                 src: "chrome/content/lyz/preferences.xhtml",
                 scripts: [
+                    "chrome/content/lyz/locale-service.js",
                     "chrome/content/lyz/settings-service.js",
                     "chrome/content/lyz/preferences.js"
                 ]
@@ -191,42 +195,42 @@ var LyZBootstrap = {
         return [
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Cite in LyX"),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-cite-label", "label")),
                 onCommand: () => this.runCommand("checkAndCite")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Update BibTeX"),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-update-bibtex-label", "label")),
                 onCommand: () => this.runCommand("updateBibtexAll")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Delete BibTeX record..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-delete-bib-label", "label")),
                 onCommand: () => this.runCommand("dbDeleteBib")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Delete LyX document record..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-delete-doc-label", "label")),
                 onCommand: () => this.runCommand("dbDeleteDoc")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Rename BibTeX record..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-rename-bib-label", "label")),
                 onCommand: () => this.runCommand("dbRenameBib")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Rename LyX document record..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-rename-doc-label", "label")),
                 onCommand: () => this.runCommand("dbRenameDoc")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "Settings..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-settings-label", "label")),
                 onCommand: () => this.runCommand("settings")
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, "LyX command..."),
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-test-label", "label")),
                 onCommand: () => this.runCommand("test")
             }
         ];
