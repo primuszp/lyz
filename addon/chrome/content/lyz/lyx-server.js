@@ -1,5 +1,7 @@
 var LyZServer = {
     requestID: 0,
+    responseTimeoutMS: 2500,
+    pollIntervalMS: 50,
 
     getWindow(lyz) {
         return lyz.wm ? lyz.wm.getMostRecentWindow("navigator:browser") : null;
@@ -16,8 +18,17 @@ var LyZServer = {
         Services.prompt.alert(null, title, message);
     },
 
+    debug(message) {
+        if (typeof Zotero !== "undefined" && Zotero.debug) {
+            Zotero.debug("LyZ server: " + message);
+        } else if (typeof Services !== "undefined" && Services.console) {
+            Services.console.logStringMessage("LyZ server: " + message);
+        }
+    },
+
     createClientID() {
-        return "lyz";
+        this.requestID += 1;
+        return "lyz" + this.requestID;
     },
 
     expectsResponse(command) {
@@ -50,19 +61,19 @@ var LyZServer = {
     },
 
     parseResponse(command, response) {
-        if (!response) {
+        if (!response || typeof response !== "string") {
             return null;
         }
         return this.parseResponseForClient(null, command, response);
     },
 
     parseResponseForClient(clientID, command, response) {
-        if (!response) {
+        if (!response || typeof response !== "string") {
             return null;
         }
         var escapedClient = clientID ? clientID.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "[^:]+";
         var escapedCommand = command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        var re = new RegExp("INFO:" + escapedClient + ":" + escapedCommand + ":(.*)", "g");
+        var re = new RegExp("INFO:" + escapedClient + ":" + escapedCommand + ":([^\\r\\n]*)", "g");
         var match;
         var value = null;
         while ((match = re.exec(response)) !== null) {
@@ -125,14 +136,16 @@ var LyZServer = {
             return response;
         }
 
-        for (var i = 0; i < 20; i++) {
-            this.busyWait(50);
+        var startedAt = Date.now();
+        while (Date.now() - startedAt < this.responseTimeoutMS) {
+            this.busyWait(this.pollIntervalMS);
             data = this.readPipeOutput(lyz);
             response = this.extractClientResponse(clientID, command, data);
             if (response) {
                 return response;
             }
         }
+        this.debug("timed out waiting for " + command + " response from " + clientID);
         return null;
     },
 
@@ -199,6 +212,7 @@ var LyZServer = {
         }
 
         msg = "LYXCMD:" + clientID + ":" + command + "\n";
+        this.debug("sending " + command + " as " + clientID);
         pipein_stream.write(msg, msg.length);
         pipein_stream.close();
 
@@ -226,7 +240,11 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        return this.waitForClientResponse(lyz, clientID, command, data);
+        var response = this.waitForClientResponse(lyz, clientID, command, data);
+        if (!response) {
+            this.debug("no response for " + command);
+        }
+        return response;
     },
 
     askServer(lyz, command) {
@@ -269,6 +287,7 @@ var LyZServer = {
         }
 
         msg = "LYXCMD:" + clientID + ":" + command + "\n";
+        this.debug("sending " + command + " as " + clientID);
         pipein_stream.write(msg, msg.length);
         pipein_stream.close();
 
@@ -286,7 +305,11 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        return this.waitForClientResponse(lyz, clientID, command, data);
+        var response = this.waitForClientResponse(lyz, clientID, command, data);
+        if (!response) {
+            this.debug("no response for " + command);
+        }
+        return response;
     },
 
     askServerWithOpenStream(lyz, command) {

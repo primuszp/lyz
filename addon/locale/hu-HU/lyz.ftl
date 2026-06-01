@@ -118,6 +118,10 @@ lyz-msg-select-bibtex-new =
 
 lyz-msg-select-bibtex-new-title = LyZ BibTeX adatbázis
 
+lyz-select-record-prompt = Válasszon egy bejegyzést.
+
+lyz-select-no-records = Nincs választható bejegyzés.
+
 lyz-msg-select-bibtex-file = BibTeX fájl kiválasztása a következőhöz: { $doc }
 
 lyz-msg-bibtex-filter = BibTeX

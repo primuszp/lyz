@@ -57,8 +57,11 @@ var LyZDatabase = {
         return lyz.DB.queryAsync("SELECT * FROM keys WHERE zid=? AND bib=?", [zid, bib]);
     },
 
-    async listBibsFromKeys(lyz) {
-        return lyz.DB.queryAsync("SELECT bib FROM keys GROUP BY bib");
+    async listBibs(lyz) {
+        return lyz.DB.queryAsync(
+            "SELECT bib FROM docs WHERE bib IS NOT NULL AND bib <> '' " +
+            "UNION SELECT bib FROM keys WHERE bib IS NOT NULL AND bib <> '' ORDER BY bib"
+        );
     },
 
     async listDocuments(lyz) {
@@ -67,10 +70,6 @@ var LyZDatabase = {
 
     async listDocumentRecords(lyz) {
         return lyz.DB.queryAsync("SELECT id,doc FROM docs");
-    },
-
-    async listDistinctBibs(lyz) {
-        return lyz.DB.queryAsync("SELECT DISTINCT bib FROM docs");
     },
 
     async deleteBib(lyz, bib) {

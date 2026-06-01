@@ -35,8 +35,7 @@ var LyZBibTeX = {
                 citeTuple = await this.createCiteKey(lyz, id, text, bib, items[i].key, newCitekeys);
                 newCitekeys.push(citeTuple[0]);
             } else {
-                var ckre = /.*@[a-z]+\{([^,]+),{1}/;
-                var key = ckre.exec(text)[1];
+                var key = this.extractBibTeXKey(text) || this.fallbackCiteKey(id, items[i].key);
                 citeTuple = [key, text];
             }
             exportedItems[id] = [citeTuple[0], citeTuple[1]];
@@ -89,23 +88,50 @@ var LyZBibTeX = {
         return text.replace(/[^\x00-\x7F]/g, char => replacements[char] || char);
     },
 
+    extractBibTeXKey(text) {
+        var match = /@[a-zA-Z]+\s*\{\s*([^,\s]+)\s*,/.exec(text);
+        return match ? match[1] : null;
+    },
+
+    extractBibTeXField(text, fieldName) {
+        var escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var match = new RegExp("[\\s,]" + escapedField + "\\s*=\\s*\\{([^\\n]*)\\}\\s*,?", "i").exec(text);
+        return match ? match[1] : null;
+    },
+
+    fallbackCiteKey(id, objKey) {
+        return this.cleanCiteKey(id || objKey || "lyz");
+    },
+
+    cleanCiteKey(citekey) {
+        citekey = String(citekey || "");
+        citekey = citekey.replace(/\\.\{/g, "");
+        citekey = citekey.replace(/[^a-zA-Z0-9\!\$\&\*\+\-\.\/\:\;\<\>\?\[\]\^\_\`\|]+/g, "");
+        return citekey || "lyz";
+    },
+
+    replaceBibTeXKey(text, oldkey, citekey) {
+        if (oldkey) {
+            return text.replace(oldkey, citekey);
+        }
+        return text.replace(/(@[a-zA-Z]+\s*\{\s*)/, "$1" + citekey + ",");
+    },
+
     async createCiteKey(lyz, id, text, bib, objKey, keyBlacklist) {
-        var ckre = /.*@[a-z]+\{([^,]+),{1}/;
-        var oldkey = ckre.exec(text)[1];
+        var oldkey = this.extractBibTeXKey(text);
         var dic = [];
         dic.zotero = id;
         var citekey;
         if (lyz.prefs.getCharPref("citekey") == "zotero") {
-            citekey = id;
-            text = text.replace(oldkey, citekey);
+            citekey = this.cleanCiteKey(id);
+            text = this.replaceBibTeXKey(text, oldkey, citekey);
             return [citekey, text];
         } else if (lyz.prefs.getCharPref("citekey") == "zoteroShort") {
-            citekey = objKey;
-            text = text.replace(oldkey, citekey);
+            citekey = this.fallbackCiteKey(null, objKey);
+            text = this.replaceBibTeXKey(text, oldkey, citekey);
             return [citekey, text];
         }
 
-        var creators;
         var authors;
         var author;
         var title;
@@ -113,17 +139,7 @@ var LyZBibTeX = {
         var p;
         citekey = "";
 
-        ckre = /author\s?=\s?\{(.*)\},?\n/;
-        creators = ckre.exec(text);
-        if (!creators) {
-            ckre = /editor\s?=\s?\{(.*)\},?\n/;
-            creators = ckre.exec(text);
-        }
-        try {
-            authors = creators[1];
-        } catch (e) {
-            authors = null;
-        }
+        authors = this.extractBibTeXField(text, "author") || this.extractBibTeXField(text, "editor");
 
         var nonLatin;
         if (authors) {
@@ -157,27 +173,28 @@ var LyZBibTeX = {
         if (nonLatin) {
             title = "";
         } else {
-            ckre = /title = \{(.*)\},\n/;
-            var t = ckre.exec(text)[1].toLowerCase();
-            t = t.replace(/[^a-z0-9\s]/g, "");
-            t = t.split(" ");
-            t.reverse();
-            title = t.pop();
-            if (title < 6 && t.length > 0) {
-                title += t.pop();
-            }
-            if (title.length < 7 && t.length > 0) {
-                title += t.pop();
+            var titleField = this.extractBibTeXField(text, "title");
+            if (titleField) {
+                var t = titleField.toLowerCase();
+                t = t.replace(/[^a-z0-9\s]/g, "");
+                t = t.split(/\s+/).filter(Boolean);
+                t.reverse();
+                title = t.pop() || "";
+                if (title.length < 6 && t.length > 0) {
+                    title += t.pop();
+                }
+                if (title.length < 7 && t.length > 0) {
+                    title += t.pop();
+                }
+            } else {
+                title = "";
             }
         }
         dic.title = title;
 
-        ckre = /[\s,]+(year|date)\s*=\s*\{\D*(\d+)[^\}]*\},?/;
-        try {
-            year = ckre.exec(text)[2].replace(" ", "");
-        } catch (e) {
-            year = "";
-        }
+        var yearField = this.extractBibTeXField(text, "year") || this.extractBibTeXField(text, "date");
+        var yearMatch = yearField ? /\D*(\d+)/.exec(yearField) : null;
+        year = yearMatch ? yearMatch[1].replace(" ", "") : "";
         dic.year = year;
 
         p = lyz.prefs.getCharPref("citekey").split(" ");
@@ -189,10 +206,10 @@ var LyZBibTeX = {
             }
         }
 
-        var re = /\\.\{/g;
-        citekey = citekey.replace(re, "");
-        re = /[^a-z0-9\!\$\&\*\+\-\.\/\:\;\<\>\?\[\]\^\_\`\|]+/g;
-        citekey = citekey.replace(re, "");
+        citekey = this.cleanCiteKey(citekey);
+        if (citekey == "lyz") {
+            citekey = this.fallbackCiteKey(id, objKey);
+        }
 
         var testKey = citekey;
         var count = 1;
@@ -210,7 +227,7 @@ var LyZBibTeX = {
             citekey = testKey;
             break;
         }
-        text = text.replace(oldkey, citekey);
+        text = this.replaceBibTeXKey(text, oldkey, citekey);
         return [citekey, text];
     }
 };

@@ -13,7 +13,7 @@ Zotero.Lyz = {
     DB : null,
     initialized: false,
     rootURI: null,
-    replace : false,
+    defaultLyXCommand: "server-get-filename",
     wm : null,
     os: null,
 
@@ -216,16 +216,16 @@ Zotero.Lyz = {
         }
     },
 
-    writeBib : function(bib, entries_text, zids) {
+    writeBib : function(bib, entries_text, zids, options = {}) {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        if (!this.replace) {//will append to the file
+        if (!options.replace) {//will append to the file
             var bib_backup = this.fileBackup(bib);
             if (!bib_backup) {
                 win.alert(LyZLocale.getString("lyz-msg-backup-failed"));
                 return;
             }
-            cstream = this.fileReadByLine(bib_backup);
-            outstream = this.fileWrite(bib)[1];
+            var cstream = this.fileReadByLine(bib_backup);
+            var outstream = this.fileWrite(bib)[1];
             var line = {}, lines = [], hasmore;
             cstream.readLine(line);
             outstream.writeString(line.value + " " + zids.join(" ") + "\n");
@@ -244,7 +244,6 @@ Zotero.Lyz = {
         cstream.writeString(data);
         cstream.close();
         fbibtex_stream.close();
-        this.replace = false;
     },
 
     objectMethods : function(obj) {
@@ -329,21 +328,20 @@ Zotero.Lyz = {
                 var file = Components.classes["@mozilla.org/file/local;1"]
                         .createInstance(Components.interfaces.nsIFile);
                 file.initWithPath(path + ".bib");
-                file.create(file.NORMAL_FILE_TYPE, 0666);
-                this.replace = true;
-                return file.path;
+                if (!file.exists()) {
+                    file.create(file.NORMAL_FILE_TYPE, 0666);
+                }
+                return { path: file.path, replace: true };
             } else {// overwrite the file if it exists
-                this.replace = true;
-                return path
+                return { path, replace: true };
             }
         } else if (res == fp.returnReplace) {
-            this.replace = true;
             if (preFP) {
                 path = fp.file.path
             } else {
                 path = fp.file
             }
-            return path
+            return { path, replace: true };
         } else {
             return false;
         }
@@ -414,10 +412,13 @@ Zotero.Lyz = {
 
     test: function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var command = this.prompt(LyZLocale.getString("lyz-cmd-prompt"), LyZLocale.getString("lyz-cmd-default"), LyZLocale.getString("lyz-cmd-title"));
+        var command = this.prompt(LyZLocale.getString("lyz-cmd-prompt"), this.defaultLyXCommand, LyZLocale.getString("lyz-cmd-title"));
         if (!command) {
             this.alert(LyZLocale.getString("lyz-cmd-no-command"), LyZLocale.getString("lyz-cmd-title"));
             return;
+        }
+        if (command == "lyz-cmd-default") {
+            command = this.defaultLyXCommand;
         }
         try {
             var response;
@@ -430,10 +431,14 @@ Zotero.Lyz = {
                 this.alert(LyZLocale.getString("lyz-cmd-no-response"), LyZLocale.getString("lyz-cmd-title"));
                 return;
             }
+            if (response === true) {
+                this.alert(LyZLocale.getString("lyz-cmd-empty-response", { command }), LyZLocale.getString("lyz-cmd-title"));
+                return;
+            }
             var parsed = this.parseLyXServerResponse(command, response);
             if (parsed) {
                 this.alert(LyZLocale.getString("lyz-cmd-response", { command, parsed }), LyZLocale.getString("lyz-cmd-title"));
-            } else if (response.indexOf(":" + command + ":") >= 0) {
+            } else if (typeof response === "string" && response.indexOf(":" + command + ":") >= 0) {
                 this.alert(LyZLocale.getString("lyz-cmd-empty-response", { command }), LyZLocale.getString("lyz-cmd-title"));
             } else {
                 this.alert(LyZLocale.getString("lyz-cmd-raw-response", { command, response }), LyZLocale.getString("lyz-cmd-title"));
@@ -477,14 +482,46 @@ Zotero.Lyz = {
         return ok ? input.value : null;
     },
 
+    selectRecord: function(items, type, title) {
+        if (!items || !items.length) {
+            this.alert(LyZLocale.getString("lyz-select-no-records"), title);
+            return null;
+        }
+        if (items.length === 1) {
+            return items[0][type];
+        }
+        var choices = [];
+        for (var i = 0; i < items.length; i++) {
+            choices.push(items[i][type]);
+        }
+        var selected = { value: 0 };
+        var ok = this.selectPrompt(title, LyZLocale.getString("lyz-select-record-prompt"), choices, selected);
+        if (!ok) {
+            return null;
+        }
+        if (selected.value < 0 || selected.value >= items.length) {
+            return null;
+        }
+        return items[selected.value][type];
+    },
+
+    selectPrompt: function(title, message, choices, selected) {
+        try {
+            return Services.prompt.select(null, title, message, choices, selected);
+        } catch (e) {
+            return Services.prompt.select(null, title, message, choices.length, choices, selected);
+        }
+    },
+
     selectBibForDocument: async function(win, doc) {
         var createNew = this.confirm(LyZLocale.getString("lyz-msg-select-bibtex-new"), LyZLocale.getString("lyz-msg-select-bibtex-new-title"));
         if (createNew) {
             return await this.dialog_FilePickerSave(win,
                     LyZLocale.getString("lyz-msg-select-bibtex-file", { doc }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib");
         }
-        return await this.dialog_FilePickerOpen(win,
+        var path = await this.dialog_FilePickerOpen(win,
                 LyZLocale.getString("lyz-msg-select-bibtex-file", { doc }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib");
+        return path ? { path, replace: false } : false;
     },
 
     exportToBibtex: Zotero.Promise.coroutine(function*(items, bib, zids) {
@@ -522,8 +559,7 @@ Zotero.Lyz = {
             newZids.push(id);
             await LyZDatabase.updateKey(this, exported[id][0], id, bib);
         }
-        this.replace = true;
-        this.writeBib(bib, text, newZids);
+        this.writeBib(bib, text, newZids, { replace: true });
         return true;
     },
 
@@ -550,11 +586,14 @@ Zotero.Lyz = {
         var text;
         var bibWasChanged = false;
         var recreateMissingBib = false;
+        var replaceBibOnWrite = false;
         if (bib.length === 0) {
-            bib = await this.selectBibForDocument(win, doc);
-            if (!bib) {
+            var selectedBib = await this.selectBibForDocument(win, doc);
+            if (!selectedBib) {
                 return;
             }
+            bib = selectedBib.path;
+            replaceBibOnWrite = selectedBib.replace;
             await LyZDatabase.setDocumentBib(this, doc, bib);
             bibWasChanged = true;
         } else {
@@ -564,8 +603,8 @@ Zotero.Lyz = {
                     LyZLocale.getString("lyz-msg-bibtex-missing", { doc, bib }),
                     LyZLocale.getString("lyz-msg-bibtex-missing-title"));
                 if (useExistingBib) {
-                    this.replace = true;
                     recreateMissingBib = true;
+                    replaceBibOnWrite = true;
                 }
             } else {
                 useExistingBib = this.confirm(
@@ -577,7 +616,8 @@ Zotero.Lyz = {
                 if (!newBib) {
                     return;
                 }
-                bib = newBib;
+                bib = newBib.path;
+                replaceBibOnWrite = newBib.replace;
                 await LyZDatabase.setDocumentBib(this, doc, bib);
                 bibWasChanged = true;
             }
@@ -623,10 +663,10 @@ Zotero.Lyz = {
         if (recreateMissingBib) {
             var rebuilt = await this.rebuildBibtexFromDatabase(bib);
             if (!rebuilt && entries_text != "") {
-                this.writeBib(bib, entries_text, zids);
+                this.writeBib(bib, entries_text, zids, { replace: true });
             }
-        } else if (!entries_text == "") {
-            this.writeBib(bib, entries_text, zids);
+        } else if (entries_text !== "") {
+            this.writeBib(bib, entries_text, zids, { replace: replaceBibOnWrite });
         }
         
         if (this.os == "Win"){
@@ -689,13 +729,11 @@ Zotero.Lyz = {
                 win.alert(LyZLocale.getString("lyz-msg-aborting"));
                 return;
             }
-            this.replace = true;
-
             // now is time to update db, bibtex and lyx
             for ( zid in newkeys) {
                 yield LyZDatabase.updateKey(this, newkeys[zid], zid, bib);
             }
-            this.writeBib(bib, text, zids);
+            this.writeBib(bib, text, zids, { replace: true });
             res = win
                     .confirm(LyZLocale.getString("lyz-msg-confirm-update-lyx-docs", { bib }));
             if (!res)
@@ -758,26 +796,12 @@ Zotero.Lyz = {
 
     dbDeleteBib: Zotero.Promise.coroutine(function*() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = yield LyZDatabase.listBibsFromKeys(this);
-        var params = {
-            inn : {
-                items : dic,
-                type : "bib"
-            },
-            out : null
-        };
-        var res = win.openDialog(this.contentURL("select.xul"), "",
-                "chrome, dialog, modal, centerscreen, resizable=yes", params);
-        if (!params.out)
-            return;
-        var bib;
-        if (params.out) {
-            bib = params.out.item;
-        }
+        var dic = yield LyZDatabase.listBibs(this);
+        var bib = this.selectRecord(dic, "bib", LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!bib) {
             return
         }
-        res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-bib", { bib }),
+        var res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-bib", { bib }),
                           LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!res)
             return;
@@ -787,25 +811,11 @@ Zotero.Lyz = {
     dbDeleteDoc: Zotero.Promise.coroutine(function*(doc, bib) {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = yield LyZDatabase.listDocuments(this);
-        var params = {
-            inn : {
-                items : dic,
-                type : "doc"
-            },
-            out : null
-        };
-        var res = win.openDialog(this.contentURL("select.xul"), "",
-                "chrome, dialog, modal, centerscreen, resizable=yes", params);
-        if (!params.out)
-            return;
-
-        if (params.out) {
-            doc = params.out.item;
-        }
+        doc = this.selectRecord(dic, "doc", LyZLocale.getAttribute("lyz-delete-doc-label", "label"));
         if (!doc) {
             return
         }
-        res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }));
+        var res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }));
         if (!res)
             return;
         yield LyZDatabase.deleteDocument(this, doc);
@@ -814,49 +824,25 @@ Zotero.Lyz = {
     dbRenameDoc: async function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = await LyZDatabase.listDocumentRecords(this);
-        var params = {
-            inn : {
-                items : dic,
-                type : "doc"
-            },
-            out : null
-        };
-        var res = win.openDialog(this.contentURL("select.xul"), "",
-                "chrome, dialog, modal, centerscreen, resizable=yes", params);
-        if (!params.out)
+        var doc = this.selectRecord(dic, "doc", LyZLocale.getAttribute("lyz-rename-doc-label", "label"));
+        if (!doc)
             return;
-        var doc;
-        if (params.out) {
-            doc = params.out.item;
-        }
         var newfname = await this.dialog_FilePickerOpen(win,
                 LyZLocale.getString("lyz-msg-select-lyx-doc", { doc }), LyZLocale.getString("lyz-msg-lyx-filter"), "*.lyx")
-        // have to replace \ with / on windows because lyxserver returns unix style paths
-        newfname = newfname.replace(/\\/g, "/");
         if (!newfname)
             return;
+        // have to replace \ with / on windows because lyxserver returns unix style paths
+        newfname = newfname.replace(/\\/g, "/");
         await LyZDatabase.renameDocument(this, newfname, doc);
     },
 
     dbRenameBib: async function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        var dic = await LyZDatabase.listDistinctBibs(this);
-        var params = {
-            inn : {
-                items : dic,
-                type : "bib"
-            },
-            out : null
-        };
-        var res = win.openDialog(this.contentURL("select.xul"), "",
-                "chrome, dialog, modal, centerscreen, resizable=yes", params);
-        if (!params.out)
+        var dic = await LyZDatabase.listBibs(this);
+        var bib = this.selectRecord(dic, "bib", LyZLocale.getAttribute("lyz-rename-bib-label", "label"));
+        if (!bib)
             return;
-        var bib;
-        if (params.out) {
-            bib = params.out.item;
-        }
-        newfname = await this.dialog_FilePickerOpen(win,
+        var newfname = await this.dialog_FilePickerOpen(win,
                 LyZLocale.getString("lyz-msg-select-bibtex-file", { doc: bib }), LyZLocale.getString("lyz-msg-bibtex-filter"), "*.bib")
         if (!newfname)
             return;

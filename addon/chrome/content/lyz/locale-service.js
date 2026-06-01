@@ -24,11 +24,23 @@ var LyZLocale = {
     getString(id, args) {
         try {
             const val = this.l10n.formatValueSync(id, args || null);
-            if (val !== null && val !== undefined) {
-                return val;
+            const unwrapped = this.unwrapValue(val);
+            if (unwrapped !== null && unwrapped !== undefined && unwrapped !== id) {
+                return unwrapped;
             }
         } catch (e) {
             Services.console.logStringMessage("LyZLocale: formatValueSync failed for '" + id + "': " + e);
+        }
+        try {
+            const messages = this.l10n.formatMessagesSync([{ id, args: args || null }]);
+            if (messages && messages[0]) {
+                const value = this.unwrapValue(messages[0].value);
+                if (value !== null && value !== undefined && value !== id) {
+                    return value;
+                }
+            }
+        } catch (e) {
+            Services.console.logStringMessage("LyZLocale: formatMessagesSync failed for '" + id + "': " + e);
         }
         return id;
     },

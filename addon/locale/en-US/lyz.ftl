@@ -118,6 +118,10 @@ lyz-msg-select-bibtex-new =
 
 lyz-msg-select-bibtex-new-title = LyZ BibTeX Database
 
+lyz-select-record-prompt = Select a record.
+
+lyz-select-no-records = There are no records to select.
+
 lyz-msg-select-bibtex-file = Select BibTeX file for { $doc }
 
 lyz-msg-bibtex-filter = BibTeX
