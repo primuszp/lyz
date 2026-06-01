@@ -10,7 +10,7 @@ var LyZLocale = {
 
     get l10n() {
         if (!this._l10n) {
-            this._l10n = new Localization(["chrome://lyz/locale/lyz.ftl"], true);
+            this._l10n = new Localization(["lyz.ftl"], true);
         }
         return this._l10n;
     },
@@ -44,13 +44,25 @@ var LyZLocale = {
         try {
             const messages = this.l10n.formatMessagesSync([{ id, args: args || null }]);
             if (messages && messages[0] && messages[0].attributes) {
-                const attr = messages[0].attributes.find(a => a.name === attribute);
-                if (attr) return attr.value;
+                const attrs = messages[0].attributes;
+                if (Array.isArray(attrs)) {
+                    const attr = attrs.find(a => a.name === attribute);
+                    if (attr) return this.unwrapValue(attr.value);
+                } else if (Object.prototype.hasOwnProperty.call(attrs, attribute)) {
+                    return this.unwrapValue(attrs[attribute]);
+                }
             }
         } catch (e) {
             Services.console.logStringMessage("LyZLocale: getAttribute failed for '" + id + "." + attribute + "': " + e);
         }
         return id;
+    },
+
+    unwrapValue(value) {
+        if (value && typeof value === "object" && Object.prototype.hasOwnProperty.call(value, "value")) {
+            return value.value;
+        }
+        return value;
     },
 
     reset() {

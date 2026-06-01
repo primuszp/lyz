@@ -175,7 +175,7 @@ var LyZBootstrap = {
             this.preferencePaneID = await Zotero.PreferencePanes.register({
                 pluginID: "lyz@zotero.org",
                 id: "lyz-prefpane",
-                label: "LyZ",
+                label: this.getPreferencePaneLabel(),
                 image: "chrome/skin/default/lyz/lyz.svg",
                 src: "chrome/content/lyz/preferences.xhtml",
                 scripts: [
@@ -189,6 +189,10 @@ var LyZBootstrap = {
             Zotero.logError(e);
             this.debug("preference pane registration failed: " + e);
         }
+    },
+
+    getPreferencePaneLabel() {
+        return LyZLocale.getAttribute("lyz-settings-label", "label").replace(/[.…]+$/, "");
     },
 
     getMenuItems() {
