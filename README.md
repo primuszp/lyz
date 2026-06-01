@@ -2,6 +2,20 @@ LyZ
 ---
 LyZ is a plugin for [Zotero](http://www.zotero.org), which is intended to make working with LyX/Zotero more pleasant. The latest source code for this fork is available at [GitHub](https://github.com/primuszp/lyz). The latest stable release of this fork is available from [the GitHub releases page](https://github.com/primuszp/lyz/releases).
 
+Modernized fork
+---------------
+This fork modernizes the original LyZ plugin, which was last maintained for the older Zotero 5/6 generation, so it can continue to work with current Zotero releases. The current build targets Zotero 7-9.
+
+Main changes in this fork:
+* Ported the plugin to the modern Zotero extension/bootstrap model.
+* Added Zotero 7-9 compatibility metadata and updated the Zotero UI integration.
+* Reworked the preferences pane for current Zotero versions.
+* Modularized the LyZ services for database, BibTeX export, settings, localization, and LyX server communication.
+* Improved citation insertion, BibTeX update, database selection, and missing-file workflows.
+* Added English, German, and Hungarian Fluent localization.
+* Updated icons and menu labels for the modern Zotero interface.
+* Fixed dialog titles and confirmation prompts so Zotero no longer shows generic JavaScript Application windows.
+
 Features
 --------
 * Inserting citations to LyX from Zotero.
@@ -130,7 +144,7 @@ Some users have found that the Update BibTeX command stops working unexpectedly.
 On Windows the lyxpipe path (`\\.\pipe\lyxpipe`) is a special path and not a real file. You should not try to change this path to something else.
 
 ### Compatibility note
-Zotero 5.0 introduced numerous API changes. Versions 3.0.0 and higher of Lyz are compatible with Zotero 5.0 and greater. Versions 2.x and lower only support Zotero version 4 and earlier.
+This fork is intended for Zotero 7-9. Older upstream LyZ releases were built for earlier Zotero generations; use this fork for current Zotero versions.
 
 Current state of development
 ----------------------------
