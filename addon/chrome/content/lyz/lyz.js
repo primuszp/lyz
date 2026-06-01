@@ -795,13 +795,12 @@ Zotero.Lyz = {
     }),
 
     dbDeleteBib: Zotero.Promise.coroutine(function*() {
-        var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = yield LyZDatabase.listBibs(this);
         var bib = this.selectRecord(dic, "bib", LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!bib) {
             return
         }
-        var res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-bib", { bib }),
+        var res = this.confirm(LyZLocale.getString("lyz-msg-confirm-delete-bib", { bib }),
                           LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!res)
             return;
@@ -809,13 +808,14 @@ Zotero.Lyz = {
     }),
 
     dbDeleteDoc: Zotero.Promise.coroutine(function*(doc, bib) {
-        var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = yield LyZDatabase.listDocuments(this);
         doc = this.selectRecord(dic, "doc", LyZLocale.getAttribute("lyz-delete-doc-label", "label"));
         if (!doc) {
             return
         }
-        var res = win.confirm(LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }));
+        var res = this.confirm(
+            LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }),
+            LyZLocale.getAttribute("lyz-delete-doc-label", "label"));
         if (!res)
             return;
         yield LyZDatabase.deleteDocument(this, doc);
