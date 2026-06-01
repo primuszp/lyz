@@ -199,6 +199,8 @@ lyz-msg-confirm-delete-doc =
     Valóban törli a következő dokumentum LyZ adatbázis bejegyzését?
     { $doc }
 
+lyz-msg-confirm-delete-doc-title = LyZ dokumentumbejegyzés törlése
+
 ## Dialog messages — LyX command test
 
 lyz-cmd-title = LyZ parancs

@@ -1,6 +1,6 @@
 LyZ
 ---
-LyZ is a plugin for [Zotero](http://www.zotero.org), which is intended to make working with LyX/Zotero more pleasant. The latest source code is available at [GitHub](https://github.com/wshanks/lyz). The latest stable release is available from [the GitHub releases page](https://github.com/wshanks/lyz/releases).
+LyZ is a plugin for [Zotero](http://www.zotero.org), which is intended to make working with LyX/Zotero more pleasant. The latest source code for this fork is available at [GitHub](https://github.com/primuszp/lyz). The latest stable release of this fork is available from [the GitHub releases page](https://github.com/primuszp/lyz/releases).
 
 Features
 --------
@@ -15,13 +15,13 @@ Features
 * Persistent association of LyX documents and BibTeX databases.
 * Support for group cooperation.
 
-**NOTE:** As of version 4.0, LyZ is distributed from the [GitHub releases page](https://github.com/wshanks/lyz/releases).
+**NOTE:** As of version 4.0, LyZ is distributed from the [GitHub releases page](https://github.com/primuszp/lyz/releases).
 New updates will not be published to the location checked by previous versions of LyZ (the Mozilla Add-ons page).
 To receive new LyZ updates, please update to the latest version of LyZ.
 
 Installation and Settings
 -------------------------
-1. Download the lyz `.xpi` file from the [GitHub releases page](https://github.com/wshanks/lyz/releases).
+1. Download the lyz `.xpi` file from the [GitHub releases page](https://github.com/primuszp/lyz/releases).
 2. Install LyZ in Zotero by selecting Add-ons from the Tools menu and then clicking the gear icon in the Add-ons window, selecting "Install add-on from file" and selecting the lyz `.xpi` file.
 3. Open LyX and set LyXServer path (in LyX go to menu, Tools > Preferences... > Paths and set LyXServer pipe to): Windows users can use the default path setting in LyZ, i.e. `\\.\pipe\lyxpipe`. Linux and Mac users can use e.g. `~/.lyxpipe` and change the LyZ settings accordingly.
 4. By default all characters are escaped, e.g. š becomes \v{s}. Set `extensions.lyz.use_utf8` to true in `about:config` to avoid escaping (in case you need to use non-latin scripts such as Chinese).
@@ -119,7 +119,7 @@ Please follow these tips to find out the source of your problem:
 
 * Extract useful information from Zotero’s Error Console (by starting Zotero on the command line with the `--jsconsole` option) and from commandline where you ran `lyx.exe -dbg lyxserver`.
 
-* Peruse the Issues opened by other users at [https://github.com/wshanks/lyz](https://github.com/wshanks/lyz).  Be sure to check the closed issues as well to see if a solution has already been found for your problem.  If not, open a new issue.
+* Peruse the Issues opened by other users at [https://github.com/primuszp/lyz](https://github.com/primuszp/lyz).  Be sure to check the closed issues as well to see if a solution has already been found for your problem.  If not, open a new issue.
 
 Common Issues
 -------------
@@ -134,14 +134,14 @@ Zotero 5.0 introduced numerous API changes. Versions 3.0.0 and higher of Lyz are
 
 Current state of development
 ----------------------------
-The current maintainer of LyZ is not the original creator and is not intimately familiar with the source code.  He plans to update LyZ as necessary to maintain functionality with the latest releases of LyX and Zotero.  He will also happily accept and merge code patches submitted by other users.  He will try to help with other issues that users experience, but he doesn't make any promises about being able to make things work.
+LyZ was originally written by Petr Šimon and later maintained on GitHub by Will Shanks at [wshanks/lyz](https://github.com/wshanks/lyz). This fork is maintained by Primusz Péter at [primuszp/lyz](https://github.com/primuszp/lyz) to keep LyZ working with current Zotero releases, including Zotero 7-9.
 
 How to Contribute
 -----------------
 1. Star the repository on GitHub. The number of stars on GitHub is one of the most visible metrics for gauging the level of interest in project.
 2. Encourage others to use the project, either directly or by writing a blog post. Besides GitHub stars, the other metric for gauging interest in the project is the total number of downloads of the xpi.
+3. Submit new features or translations. However, keep in mind that new features add to the maintenance burden of the project. So get in contact before putting a lot of time into a new feature.
 
 Credits
 -------
-Lyz was written by  Petr Šimon.  It is inspired by Lytero, which Petr wanted to improve, but he ended up starting from scratch. Hence the new name. Thanks to Dan Stillman and mronkko at zotero.org forum. Justin Wood for BOM and escaping suggestions and donation!  It is currently maintained on GitHub by Will Shanks.
-3. Submit new features or translations. However, keep in mind that new features add to the maintenance burden of the project. So get in contact before putting a lot of time into a new feature.
+LyZ was written by Petr Šimon. It is inspired by Lytero, which Petr wanted to improve, but he ended up starting from scratch. Hence the new name. Thanks to Dan Stillman and mronkko at zotero.org forum. Thanks to Justin Wood for BOM and escaping suggestions and donation. The project was later maintained on GitHub by Will Shanks, and this Zotero 7-9 fork is maintained by Primusz Péter.

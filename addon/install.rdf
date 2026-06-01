@@ -35,7 +35,7 @@
     </em:targetApplication>
   <em:name>LyZ</em:name>
   <em:description>LyX integration plugin.</em:description>
-  <em:creator>Petr Šimon, Primusz Péter, Will Shanks, and contributors</em:creator>
+  <em:creator>Petr Šimon, Will Shanks, Primusz Péter, and contributors</em:creator>
   <em:homepageURL>https://github.com/primuszp/lyz</em:homepageURL>
   </Description>      
 </RDF>

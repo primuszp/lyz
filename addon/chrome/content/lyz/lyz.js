@@ -815,7 +815,7 @@ Zotero.Lyz = {
         }
         var res = this.confirm(
             LyZLocale.getString("lyz-msg-confirm-delete-doc", { doc }),
-            LyZLocale.getAttribute("lyz-delete-doc-label", "label"));
+            LyZLocale.getString("lyz-msg-confirm-delete-doc-title"));
         if (!res)
             return;
         yield LyZDatabase.deleteDocument(this, doc);

@@ -199,6 +199,8 @@ lyz-msg-confirm-delete-doc =
     Möchten Sie den LyZ-Datenbankeintrag des Dokuments wirklich löschen?
     { $doc }
 
+lyz-msg-confirm-delete-doc-title = LyZ-Dokumenteintrag löschen
+
 ## Dialog messages — LyX command test
 
 lyz-cmd-title = LyZ-Befehl

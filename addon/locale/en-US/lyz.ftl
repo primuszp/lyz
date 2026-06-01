@@ -199,6 +199,8 @@ lyz-msg-confirm-delete-doc =
     Do you really want to delete the LyZ database record of the document
     { $doc }?
 
+lyz-msg-confirm-delete-doc-title = Deleting LyZ document record
+
 ## Dialog messages — LyX command test
 
 lyz-cmd-title = LyZ Command
