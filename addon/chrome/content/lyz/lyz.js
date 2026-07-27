@@ -40,7 +40,7 @@ Zotero.Lyz = {
 
         await LyZDatabase.init(this);
         if (this.prefs.getBoolPref('checkZotero5Migration')) {
-            this.migrateToZotero5()
+            await this.migrateToZotero5()
         }
         this.initialized = true;
     },
@@ -201,8 +201,25 @@ Zotero.Lyz = {
                 outstream.writeString(tmp + "\n");
             } while (hasmore);
 
+            outstream.close();
+            outstream = null;
             cstream.close();
+            cstream = null;
         } catch (e) {
+            if (outstream) {
+                try {
+                    outstream.close();
+                } catch (closeError) {
+                    Zotero.logError(closeError);
+                }
+            }
+            if (cstream) {
+                try {
+                    cstream.close();
+                } catch (closeError) {
+                    Zotero.logError(closeError);
+                }
+            }
             win.alert(LyZLocale.getString("lyz-msg-report-error", { error: String(e) }));
             var oldfile = Components.classes["@mozilla.org/file/local;1"]
                     .createInstance(Components.interfaces.nsIFile);
@@ -248,8 +265,10 @@ Zotero.Lyz = {
 
     objectMethods : function(obj) {
         var output = '';
-        for (var property in object) {
-            output += property + ': ' + object[property] + '\n';
+        for (var property in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, property)) {
+                output += property + ': ' + obj[property] + '\n';
+            }
         }
         return output;
     },
@@ -458,7 +477,7 @@ Zotero.Lyz = {
         }
         res = await LyZDatabase.getDocumentRecord(this, doc);
         if (res.length === 0) {
-            return [ res, doc ];
+            return ["", doc];
         }
         Services.console.logStringMessage("LyZ document mapping: doc=" + doc + ", bib=" + res[0].bib);
         return [res[0].bib, doc];
@@ -683,6 +702,9 @@ Zotero.Lyz = {
         // update when zotero items are modified
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var res = yield this.checkDocInDB();
+        if (!res) {
+            return;
+        }
         var doc = res[1];
         var bib = res[0];
         if (!bib) {
@@ -698,7 +720,7 @@ Zotero.Lyz = {
             var ids_h = yield LyZDatabase.getKeysForBib(this, bib);
             var ids = [];
             var zids = [];
-            var oldkeys = [];
+            var oldkeys = Object.create(null);
             var zid;
             for ( var i = 0; i < ids_h.length; i++) {
                 zid = ids_h[i].zid;
@@ -718,14 +740,16 @@ Zotero.Lyz = {
 
             var ex = yield this.exportToBibtex(ids, bib, zids);
             zids = [];
-            var newkeys = [];
+            var newkeys = Object.create(null);
             var text = "";
             for ( var id in ex) {
                 text += ex[id][1];
                 zids.push(id);
                 newkeys[id] = ex[id][0];
             }
-            if (!(oldkeys.length == newkeys.length)) {
+            var oldKeyCount = Object.keys(oldkeys).length;
+            var newKeyCount = Object.keys(newkeys).length;
+            if (oldKeyCount !== newKeyCount) {
                 win.alert(LyZLocale.getString("lyz-msg-aborting"));
                 return;
             }
@@ -760,6 +784,9 @@ Zotero.Lyz = {
     updateFromBibtexFile: Zotero.Promise.coroutine(function*() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var res = yield this.checkDocInDB();
+        if (!res) {
+            return;
+        }
         var doc = res[1];
         var bib = res[0];
         if (!bib) {
@@ -860,7 +887,7 @@ Zotero.Lyz = {
             this.prefs.setBoolPref('checkZotero5Migration', false)
             return
         }
-        res = yield LyZDatabase.listLegacyZoteroKeys(this)
+        var res = yield LyZDatabase.listLegacyZoteroKeys(this)
         if (res.length === 0) {
             this.prefs.setBoolPref('checkZotero5Migration', false)
             return

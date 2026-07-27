@@ -23,13 +23,15 @@ var LyZBibTeX = {
         }
         translation.setDisplayOptions(displayOptions);
 
-        var exportedItems = [];
+        var exportedItems = Object.create(null);
         var newCitekeys = [];
         for (var i = 0; i < items.length; i++) {
             var id = Zotero.Items.getLibraryKeyHash(items[i]);
             translation.setItems([items[i]]);
             await translation.translate();
-            text = this.escapeUnicodeForBibTeX(text);
+            if (!useUTF8) {
+                text = this.escapeUnicodeForBibTeX(text);
+            }
             var citeTuple;
             if (lyz.prefs.getBoolPref("createCiteKey") === true) {
                 citeTuple = await this.createCiteKey(lyz, id, text, bib, items[i].key, newCitekeys);
@@ -111,15 +113,16 @@ var LyZBibTeX = {
     },
 
     replaceBibTeXKey(text, oldkey, citekey) {
-        if (oldkey) {
-            return text.replace(oldkey, citekey);
+        var entryStart = /(@[a-zA-Z]+\s*\{\s*)([^,\s]+)(\s*,)/;
+        if (oldkey && entryStart.test(text)) {
+            return text.replace(entryStart, "$1" + citekey + "$3");
         }
         return text.replace(/(@[a-zA-Z]+\s*\{\s*)/, "$1" + citekey + ",");
     },
 
     async createCiteKey(lyz, id, text, bib, objKey, keyBlacklist) {
         var oldkey = this.extractBibTeXKey(text);
-        var dic = [];
+        var dic = Object.create(null);
         dic.zotero = id;
         var citekey;
         if (lyz.prefs.getCharPref("citekey") == "zotero") {
