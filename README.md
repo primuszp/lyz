@@ -156,6 +156,13 @@ How to Contribute
 2. Encourage others to use the project, either directly or by writing a blog post. Besides GitHub stars, the other metric for gauging interest in the project is the total number of downloads of the xpi.
 3. Submit new features or translations. However, keep in mind that new features add to the maintenance burden of the project. So get in contact before putting a lot of time into a new feature.
 
+Development checks
+------------------
+The repository includes dependency-free Node.js checks. Use a current Node.js release and run:
+
+    npm test
+    npm run check
+
 Credits
 -------
 LyZ was written by Petr Šimon. It is inspired by Lytero, which Petr wanted to improve, but he ended up starting from scratch. Hence the new name. Thanks to Dan Stillman and mronkko at zotero.org forum. Thanks to Justin Wood for BOM and escaping suggestions and donation. The project was later maintained on GitHub by Will Shanks, and this Zotero 7-9 fork is maintained by Primusz Péter.

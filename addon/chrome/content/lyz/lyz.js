@@ -429,7 +429,7 @@ Zotero.Lyz = {
         return [ file_stream, cstream ];
     },
 
-    test: function() {
+    test: async function() {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var command = this.prompt(LyZLocale.getString("lyz-cmd-prompt"), this.defaultLyXCommand, LyZLocale.getString("lyz-cmd-title"));
         if (!command) {
@@ -442,9 +442,9 @@ Zotero.Lyz = {
         try {
             var response;
             if (this.os == "Win"){
-                response = this.lyxAskServer(command);
+                response = await this.lyxAskServer(command);
             } else {
-                response = this._lyxAskServer(command);
+                response = await this._lyxAskServer(command);
             }
             if (!response) {
                 this.alert(LyZLocale.getString("lyz-cmd-no-response"), LyZLocale.getString("lyz-cmd-title"));
@@ -470,7 +470,7 @@ Zotero.Lyz = {
     checkDocInDB: async function() {
         var doc, res;
         var win = this.wm.getMostRecentWindow("navigator:browser");
-        doc = this.lyxGetDoc();
+        doc = await this.lyxGetDoc();
         if (!doc) {
             win.alert(LyZLocale.getString("lyz-msg-could-not-retrieve-doc"));
             return null;
@@ -667,12 +667,12 @@ Zotero.Lyz = {
                                 LyZLocale.getString("lyz-msg-record-changed-title"));
                 if (ask) {
                     // FIXME: started to act weird
-                    var xy = this.lyxGetPos();
+                    var xy = await this.lyxGetPos();
                     await this.updateBibtexAll();
                     if (this.os == "Win"){
-                        this.lyxAskServer("server-set-xy:" + xy);
+                        await this.lyxAskServer("server-set-xy:" + xy);
                     } else {
-                        this._lyxAskServer("server-set-xy:" + xy);
+                        await this._lyxAskServer("server-set-xy:" + xy);
                     }
                 } else {
                     return;
@@ -689,9 +689,9 @@ Zotero.Lyz = {
         }
         
         if (this.os == "Win"){
-            res = this.lyxAskServer("citation-insert:" + keys.join(","));
+            res = await this.lyxAskServer("citation-insert:" + keys.join(","));
         } else {
-            res = this._lyxAskServer("citation-insert:" + keys.join(","));
+            res = await this._lyxAskServer("citation-insert:" + keys.join(","));
         }
     },
 
@@ -764,18 +764,18 @@ Zotero.Lyz = {
                 return;
             
             if (this.os == "Win"){
-                this.lyxAskServer("buffer-write");
-                this.lyxAskServer("buffer-close");
+                yield this.lyxAskServer("buffer-write");
+                yield this.lyxAskServer("buffer-close");
             } else {
-                this._lyxAskServer("buffer-write");
-                this._lyxAskServer("buffer-close");
+                yield this._lyxAskServer("buffer-write");
+                yield this._lyxAskServer("buffer-close");
             }
             
             this.syncBibtexKeyFormat(doc, oldkeys, newkeys);
             if (this.os == "Win"){
-                this.lyxAskServer("file-open:" + doc);
+                yield this.lyxAskServer("file-open:" + doc);
             } else {
-                this._lyxAskServer("file-open:" + doc);
+                yield this._lyxAskServer("file-open:" + doc);
             }
             
         }

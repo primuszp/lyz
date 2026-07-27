@@ -3,6 +3,17 @@ var LyZDatabase = {
         lyz.DB = new Zotero.DBConnection("lyz");
         await lyz.DB.queryAsync("CREATE TABLE IF NOT EXISTS docs (id INTEGER PRIMARY KEY, doc TEXT, bib TEXT)");
         await lyz.DB.queryAsync("CREATE TABLE IF NOT EXISTS keys (id INTEGER PRIMARY KEY, key TEXT, bib TEXT, zid TEXT)");
+        await lyz.DB.executeTransaction(async () => {
+            await lyz.DB.queryAsync(
+                "DELETE FROM docs WHERE id NOT IN (SELECT MAX(id) FROM docs GROUP BY doc)"
+            );
+            await lyz.DB.queryAsync(
+                "DELETE FROM keys WHERE id NOT IN (SELECT MAX(id) FROM keys GROUP BY bib,zid)"
+            );
+            await lyz.DB.queryAsync("CREATE UNIQUE INDEX IF NOT EXISTS docs_doc_unique ON docs(doc)");
+            await lyz.DB.queryAsync("CREATE UNIQUE INDEX IF NOT EXISTS keys_bib_zid_unique ON keys(bib,zid)");
+            await lyz.DB.queryAsync("CREATE INDEX IF NOT EXISTS keys_bib_key_idx ON keys(bib,key)");
+        });
     },
 
     async close(lyz) {
@@ -17,16 +28,15 @@ var LyZDatabase = {
     },
 
     async addDocument(lyz, doc, bib) {
-        await lyz.DB.queryAsync("INSERT INTO docs (doc,bib) VALUES(?,?)", [doc, bib]);
+        await lyz.DB.queryAsync(
+            "INSERT INTO docs (doc,bib) VALUES(?,?) " +
+            "ON CONFLICT(doc) DO UPDATE SET bib=excluded.bib",
+            [doc, bib]
+        );
     },
 
     async setDocumentBib(lyz, doc, bib) {
-        var existing = await this.getDocumentRecord(lyz, doc);
-        if (existing.length === 0) {
-            await this.addDocument(lyz, doc, bib);
-            return;
-        }
-        await lyz.DB.queryAsync("UPDATE docs SET bib=? WHERE doc=?", [bib, doc]);
+        await this.addDocument(lyz, doc, bib);
     },
 
     async clearKeysForBib(lyz, bib) {
@@ -38,7 +48,11 @@ var LyZDatabase = {
     },
 
     async insertKey(lyz, key, bib, zid) {
-        await lyz.DB.queryAsync("INSERT INTO keys VALUES(null,?,?,?)", [key, bib, zid]);
+        await lyz.DB.queryAsync(
+            "INSERT INTO keys (key,bib,zid) VALUES(?,?,?) " +
+            "ON CONFLICT(bib,zid) DO UPDATE SET key=excluded.key",
+            [key, bib, zid]
+        );
     },
 
     async findConflictingKey(lyz, bib, key, zid) {
@@ -46,7 +60,7 @@ var LyZDatabase = {
     },
 
     async getKeysForBib(lyz, bib) {
-        return lyz.DB.queryAsync("SELECT zid,key FROM keys WHERE bib=? GROUP BY zid", [bib]);
+        return lyz.DB.queryAsync("SELECT zid,key FROM keys WHERE bib=?", [bib]);
     },
 
     async updateKey(lyz, key, zid, bib) {
@@ -73,8 +87,10 @@ var LyZDatabase = {
     },
 
     async deleteBib(lyz, bib) {
-        await lyz.DB.queryAsync("DELETE FROM docs WHERE bib=?", [bib]);
-        await lyz.DB.queryAsync("DELETE FROM keys WHERE bib=?", [bib]);
+        await lyz.DB.executeTransaction(async () => {
+            await lyz.DB.queryAsync("DELETE FROM docs WHERE bib=?", [bib]);
+            await lyz.DB.queryAsync("DELETE FROM keys WHERE bib=?", [bib]);
+        });
     },
 
     async deleteDocument(lyz, doc) {
@@ -82,12 +98,28 @@ var LyZDatabase = {
     },
 
     async renameDocument(lyz, newDoc, oldDoc) {
-        await lyz.DB.queryAsync("UPDATE docs SET doc=? WHERE doc=?", [newDoc, oldDoc]);
+        await lyz.DB.executeTransaction(async () => {
+            await lyz.DB.queryAsync(
+                "INSERT INTO docs (doc,bib) SELECT ?,bib FROM docs WHERE doc=? " +
+                "ON CONFLICT(doc) DO UPDATE SET bib=excluded.bib",
+                [newDoc, oldDoc]
+            );
+            if (newDoc !== oldDoc) {
+                await lyz.DB.queryAsync("DELETE FROM docs WHERE doc=?", [oldDoc]);
+            }
+        });
     },
 
     async renameBib(lyz, newBib, oldBib) {
-        await lyz.DB.queryAsync("UPDATE docs SET bib=? WHERE bib=?", [newBib, oldBib]);
-        await lyz.DB.queryAsync("UPDATE keys SET bib=? WHERE bib=?", [newBib, oldBib]);
+        await lyz.DB.executeTransaction(async () => {
+            await lyz.DB.queryAsync("UPDATE docs SET bib=? WHERE bib=?", [newBib, oldBib]);
+            await lyz.DB.queryAsync(
+                "INSERT INTO keys (key,bib,zid) SELECT key,?,zid FROM keys WHERE bib=? " +
+                "ON CONFLICT(bib,zid) DO UPDATE SET key=excluded.key",
+                [newBib, oldBib]
+            );
+            await lyz.DB.queryAsync("DELETE FROM keys WHERE bib=?", [oldBib]);
+        });
     },
 
     async listLegacyZoteroKeys(lyz) {

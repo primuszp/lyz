@@ -35,13 +35,12 @@ var LyZServer = {
         return command == "server-get-filename" || command == "server-get-xy";
     },
 
-    getDocument(lyz) {
+    async getDocument(lyz) {
         var res, fname;
-        var win = this.getWindow(lyz);
         if (lyz.os == "Win") {
-            res = this.askServer(lyz, "server-get-filename");
+            res = await this.askServer(lyz, "server-get-filename");
         } else {
-            res = this.askServerWithOpenStream(lyz, "server-get-filename");
+            res = await this.askServerWithOpenStream(lyz, "server-get-filename");
         }
         if (!res) {
             this.alert(LyZLocale.getString("lyz-server-no-contact", { path: this.getPipePath(lyz) }));
@@ -90,11 +89,12 @@ var LyZServer = {
         return "INFO:" + clientID + ":" + command + ":" + parsed;
     },
 
-    busyWait(milliseconds) {
-        var end = Date.now() + milliseconds;
-        while (Date.now() < end) {
-            Services.tm.currentThread.processNextEvent(false);
-        }
+    delay(milliseconds) {
+        return new Promise(resolve => {
+            var timer = Components.classes["@mozilla.org/timer;1"]
+                    .createInstance(Components.interfaces.nsITimer);
+            timer.initWithCallback(resolve, milliseconds, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+        });
     },
 
     readPipeOutput(lyz) {
@@ -129,7 +129,7 @@ var LyZServer = {
         }
     },
 
-    waitForClientResponse(lyz, clientID, command, initialData) {
+    async waitForClientResponse(lyz, clientID, command, initialData) {
         var data = initialData;
         var response = this.extractClientResponse(clientID, command, data);
         if (response) {
@@ -138,7 +138,7 @@ var LyZServer = {
 
         var startedAt = Date.now();
         while (Date.now() - startedAt < this.responseTimeoutMS) {
-            this.busyWait(this.pollIntervalMS);
+            await this.delay(this.pollIntervalMS);
             data = this.readPipeOutput(lyz);
             response = this.extractClientResponse(clientID, command, data);
             if (response) {
@@ -149,12 +149,12 @@ var LyZServer = {
         return null;
     },
 
-    getPosition(lyz) {
+    async getPosition(lyz) {
         var res;
         if (lyz.os == "Win") {
-            res = this.askServer(lyz, "server-get-xy");
+            res = await this.askServer(lyz, "server-get-xy");
         } else {
-            res = this.askServerWithOpenStream(lyz, "server-get-xy");
+            res = await this.askServerWithOpenStream(lyz, "server-get-xy");
         }
         return this.parseResponse("server-get-xy", res);
     },
@@ -183,9 +183,8 @@ var LyZServer = {
         return cstream;
     },
 
-    writeAndRead(lyz, command) {
+    async writeAndRead(lyz, command) {
         var pipein, pipein_stream, msg, str, data;
-        var win = this.getWindow(lyz);
         var clientID = this.createClientID();
 
         try {
@@ -240,27 +239,24 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        var response = this.waitForClientResponse(lyz, clientID, command, data);
+        var response = await this.waitForClientResponse(lyz, clientID, command, data);
         if (!response) {
             this.debug("no response for " + command);
         }
         return response;
     },
 
-    askServer(lyz, command) {
-        var win = this.getWindow(lyz);
-
+    async askServer(lyz, command) {
         try {
-            return this.writeAndRead(lyz, command);
+            return await this.writeAndRead(lyz, command);
         } catch (x) {
             this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return false;
         }
     },
 
-    writeAndReadWithOpenStream(lyz, command, cstream) {
+    async writeAndReadWithOpenStream(lyz, command, cstream) {
         var pipein, pipein_stream, msg, str, data;
-        var win = this.getWindow(lyz);
         var clientID = this.createClientID();
 
         try {
@@ -305,15 +301,14 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        var response = this.waitForClientResponse(lyz, clientID, command, data);
+        var response = await this.waitForClientResponse(lyz, clientID, command, data);
         if (!response) {
             this.debug("no response for " + command);
         }
         return response;
     },
 
-    askServerWithOpenStream(lyz, command) {
-        var win = this.getWindow(lyz);
+    async askServerWithOpenStream(lyz, command) {
         var cstream;
         try {
             cstream = this.pipeInit(lyz);
@@ -322,7 +317,7 @@ var LyZServer = {
             return null;
         }
         try {
-            return this.writeAndReadWithOpenStream(lyz, command, cstream);
+            return await this.writeAndReadWithOpenStream(lyz, command, cstream);
         } catch (x) {
             this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return null;

@@ -14,4 +14,8 @@ $(BLDDIR)/lyz.xpi:
 clean:
 	rm -f $(BLDDIR)/lyz.xpi
 
-.PHONY: all clean xpi
+test:
+	npm test
+	npm run check
+
+.PHONY: all clean test xpi
