@@ -163,6 +163,8 @@ lyz-msg-record-changed-title = Zotero-Eintrag geändert!
 
 ## Dialog messages — BibTeX update
 
+lyz-msg-confirm-update-bibtex-title = BibTeX-Datenbank aktualisieren
+
 lyz-msg-confirm-update-bibtex =
     Die BibTeX-Datenbank wird aktualisiert:
     { "" }
@@ -183,6 +185,8 @@ lyz-msg-confirm-update-lyx-docs =
     Möchten Sie auch die zugehörigen LyX-Dokumente aktualisieren?
     Dies ist nur erforderlich, wenn Autor, Titel oder Jahr geändert wurde,
     oder das BibTeX-Schlüsselformat geändert wurde.
+
+lyz-msg-confirm-update-lyx-docs-title = LyX-Dokumente aktualisieren
 
 lyz-msg-items-changed = { $count } Eintrag/Einträge geändert oder hinzugefügt.
 
@@ -266,7 +270,7 @@ lyz-server-no-filename =
     { "" }
     Stellen Sie sicher, dass das LyX-Dokument gespeichert und das Dokumentfenster aktiv ist.
 
-lyz-server-pipe-not-exist = Der angegebene LyXServer-Pipe existiert nicht.
+lyz-server-pipe-not-exist = Der angegebene LyXServer-Pipe existiert nicht: { $path }
 
 lyz-server-wrong-path =
     Falscher Pfad zum LyX-Server:

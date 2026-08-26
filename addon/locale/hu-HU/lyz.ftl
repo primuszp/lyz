@@ -163,6 +163,8 @@ lyz-msg-record-changed-title = Zotero bejegyzés megváltozott!
 
 ## Dialog messages — BibTeX update
 
+lyz-msg-confirm-update-bibtex-title = BibTeX adatbázis frissítése
+
 lyz-msg-confirm-update-bibtex =
     A BibTeX adatbázis frissítése:
     { "" }
@@ -183,6 +185,8 @@ lyz-msg-confirm-update-lyx-docs =
     Frissíteni kívánja a kapcsolódó LyX dokumentumokat is?
     Ez csak akkor szükséges, ha szerző, cím vagy év módosult,
     vagy ha a BibTeX kulcsformátum megváltozott.
+
+lyz-msg-confirm-update-lyx-docs-title = LyX dokumentumok frissítése
 
 lyz-msg-items-changed = { $count } elem megváltozott vagy hozzáadva.
 
@@ -266,7 +270,7 @@ lyz-server-no-filename =
     { "" }
     Győződjön meg arról, hogy a LyX dokumentum el van mentve és a dokumentum ablaka aktív.
 
-lyz-server-pipe-not-exist = A megadott LyXServer cső nem létezik.
+lyz-server-pipe-not-exist = A megadott LyXServer cső nem létezik: { $path }
 
 lyz-server-wrong-path =
     Helytelen elérési út a LyX szerverhez:

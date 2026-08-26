@@ -9,7 +9,8 @@ var LyZServer = {
 
     getPipePath(lyz) {
         if (typeof LyZSettings !== "undefined") {
-            return LyZSettings.getCharPref("lyxserver", LyZSettings.getDefaultLyXServerPath());
+            var path = LyZSettings.getCharPref("lyxserver", LyZSettings.getDefaultLyXServerPath());
+            return LyZSettings.detectLyXServerPath(path);
         }
         return lyz.prefs.getCharPref("lyxserver");
     },
@@ -171,7 +172,7 @@ var LyZServer = {
         path = this.getPipePath(lyz);
         pipeout.initWithPath(path + ".out");
         if (!pipeout.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist"));
+            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist", { path }));
             return null;
         }
         pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
@@ -226,7 +227,7 @@ var LyZServer = {
                 .createInstance(Components.interfaces.nsIFile);
         pipeout.initWithPath(this.getPipePath(lyz) + ".out");
         if (!pipeout.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist"));
+            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist", { path: this.getPipePath(lyz) }));
             return null;
         }
         var pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]

@@ -4,11 +4,11 @@ LyZ is a plugin for [Zotero](http://www.zotero.org), which is intended to make w
 
 Modernized fork
 ---------------
-This fork modernizes the original LyZ plugin, which was last maintained for the older Zotero 5/6 generation, so it can continue to work with current Zotero releases. The current build targets Zotero 7-9.
+This fork modernizes the original LyZ plugin, which was last maintained for the older Zotero 5/6 generation, so it can continue to work with current Zotero releases. The current build targets Zotero 7-10.
 
 Main changes in this fork:
 * Ported the plugin to the modern Zotero extension/bootstrap model.
-* Added Zotero 7-9 compatibility metadata and updated the Zotero UI integration.
+* Added Zotero 7-10 compatibility metadata and updated the Zotero UI integration.
 * Reworked the preferences pane for current Zotero versions.
 * Modularized the LyZ services for database, BibTeX export, settings, localization, and LyX server communication.
 * Improved citation insertion, BibTeX update, database selection, and missing-file workflows.
@@ -144,11 +144,11 @@ Some users have found that the Update BibTeX command stops working unexpectedly.
 On Windows the lyxpipe path (`\\.\pipe\lyxpipe`) is a special path and not a real file. You should not try to change this path to something else.
 
 ### Compatibility note
-This fork is intended for Zotero 7-9. Older upstream LyZ releases were built for earlier Zotero generations; use this fork for current Zotero versions.
+This fork is intended for Zotero 7-10. Older upstream LyZ releases were built for earlier Zotero generations; use this fork for current Zotero versions.
 
 Current state of development
 ----------------------------
-LyZ was originally written by Petr Šimon and later maintained on GitHub by Will Shanks at [wshanks/lyz](https://github.com/wshanks/lyz). This fork is maintained by Primusz Péter at [primuszp/lyz](https://github.com/primuszp/lyz) to keep LyZ working with current Zotero releases, including Zotero 7-9.
+LyZ was originally written by Petr Šimon and later maintained on GitHub by Will Shanks at [wshanks/lyz](https://github.com/wshanks/lyz). This fork is maintained by Primusz Péter at [primuszp/lyz](https://github.com/primuszp/lyz) to keep LyZ working with current Zotero releases, including Zotero 7-10.
 
 How to Contribute
 -----------------
@@ -165,4 +165,4 @@ The repository includes dependency-free Node.js checks. Use a current Node.js re
 
 Credits
 -------
-LyZ was written by Petr Šimon. It is inspired by Lytero, which Petr wanted to improve, but he ended up starting from scratch. Hence the new name. Thanks to Dan Stillman and mronkko at zotero.org forum. Thanks to Justin Wood for BOM and escaping suggestions and donation. The project was later maintained on GitHub by Will Shanks, and this Zotero 7-9 fork is maintained by Primusz Péter.
+LyZ was written by Petr Šimon. It is inspired by Lytero, which Petr wanted to improve, but he ended up starting from scratch. Hence the new name. Thanks to Dan Stillman and mronkko at zotero.org forum. Thanks to Justin Wood for BOM and escaping suggestions and donation. The project was later maintained on GitHub by Will Shanks, and this Zotero 7-10 fork is maintained by Primusz Péter.

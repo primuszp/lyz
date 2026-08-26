@@ -1,7 +1,7 @@
 BLDDIR = build
 
 # Necessary because zip copies leading directories if run from above targets
-ABS_BLDDIR := $(shell readlink -f $(BLDDIR))
+ABS_BLDDIR := $(abspath $(BLDDIR))
 
 all: xpi
 

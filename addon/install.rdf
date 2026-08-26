@@ -4,7 +4,7 @@
 
   <Description about="urn:mozilla:install-manifest">
     <em:id>lyz@zotero.org</em:id>
-        <em:version>5.0.67</em:version>
+        <em:version>5.0.71</em:version>
 	<em:multiprocessCompatible>true</em:multiprocessCompatible>
         <em:updateURL>https://raw.githubusercontent.com/primuszp/lyz/release/deploy/updates.json</em:updateURL>
     <em:type>2</em:type>
@@ -23,7 +23,7 @@
       <Description>
 	<em:id>zotero@zotero.org</em:id>
 	<em:minVersion>7.0</em:minVersion>
-	<em:maxVersion>9.0.*</em:maxVersion>
+	<em:maxVersion>10.0.*</em:maxVersion>
       </Description>
     </em:targetApplication>
     <em:targetApplication>

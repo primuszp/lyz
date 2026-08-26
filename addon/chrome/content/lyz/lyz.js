@@ -573,12 +573,16 @@ Zotero.Lyz = {
         var exported = await this.exportToBibtex(ids, bib, zids);
         var text = "";
         var newZids = [];
+        var newKeys = Object.create(null);
         for (var id in exported) {
             text += exported[id][1];
             newZids.push(id);
-            await LyZDatabase.updateKey(this, exported[id][0], id, bib);
+            newKeys[id] = exported[id][0];
         }
         this.writeBib(bib, text, newZids, { replace: true });
+        for (var zid in newKeys) {
+            await LyZDatabase.updateKey(this, newKeys[zid], zid, bib);
+        }
         return true;
     },
 
@@ -603,9 +607,9 @@ Zotero.Lyz = {
         var entries_text = "";
         var citekey;
         var text;
-        var bibWasChanged = false;
         var recreateMissingBib = false;
         var replaceBibOnWrite = false;
+        var updateDocumentMapping = false;
         if (bib.length === 0) {
             var selectedBib = await this.selectBibForDocument(win, doc);
             if (!selectedBib) {
@@ -613,8 +617,7 @@ Zotero.Lyz = {
             }
             bib = selectedBib.path;
             replaceBibOnWrite = selectedBib.replace;
-            await LyZDatabase.setDocumentBib(this, doc, bib);
-            bibWasChanged = true;
+            updateDocumentMapping = true;
         } else {
             var useExistingBib;
             if (!this.fileExists(bib)) {
@@ -637,16 +640,13 @@ Zotero.Lyz = {
                 }
                 bib = newBib.path;
                 replaceBibOnWrite = newBib.replace;
-                await LyZDatabase.setDocumentBib(this, doc, bib);
-                bibWasChanged = true;
+                updateDocumentMapping = true;
             }
-        }
-        if (bibWasChanged) {
-            await LyZDatabase.clearKeysForBib(this, bib);
         }
         items = await this.exportToBibtex(zitems, bib);
         keys = [];
         var zids = [];
+        var pendingKeys = [];
 
         for ( var zid in items) {
             citekey = items[zid][0];
@@ -657,8 +657,8 @@ Zotero.Lyz = {
             res = await LyZDatabase.findKey(this, bib, zid);
 
             if (res.length === 0) {
-                await LyZDatabase.insertKey(this, citekey, bib, zid);
                 zids.push(zid);
+                pendingKeys.push([citekey, zid]);
                 entries_text += text;
             } else if (res[0].key != citekey) {
                 var ask = win
@@ -681,11 +681,17 @@ Zotero.Lyz = {
         }
         if (recreateMissingBib) {
             var rebuilt = await this.rebuildBibtexFromDatabase(bib);
-            if (!rebuilt && entries_text != "") {
-                this.writeBib(bib, entries_text, zids, { replace: true });
+            if (entries_text != "") {
+                this.writeBib(bib, entries_text, zids, { replace: !rebuilt });
             }
         } else if (entries_text !== "") {
             this.writeBib(bib, entries_text, zids, { replace: replaceBibOnWrite });
+        }
+        if (updateDocumentMapping) {
+            await LyZDatabase.setDocumentBib(this, doc, bib);
+        }
+        for (var pending of pendingKeys) {
+            await LyZDatabase.insertKey(this, pending[0], bib, pending[1]);
         }
         
         if (this.os == "Win"){
@@ -714,7 +720,10 @@ Zotero.Lyz = {
         var citekey = this.prefs.getCharPref("citekey");
 
         
-        var p = win.confirm(LyZLocale.getString("lyz-msg-confirm-update-bibtex", { bib, citekey }));
+        var p = this.confirm(
+            LyZLocale.getString("lyz-msg-confirm-update-bibtex", { bib, citekey }),
+            LyZLocale.getString("lyz-msg-confirm-update-bibtex-title")
+        );
         if (p) {
             // get all ids for the bibtex file
             var ids_h = yield LyZDatabase.getKeysForBib(this, bib);
@@ -753,13 +762,15 @@ Zotero.Lyz = {
                 win.alert(LyZLocale.getString("lyz-msg-aborting"));
                 return;
             }
-            // now is time to update db, bibtex and lyx
+            // Write the bibliography before committing its new keys to the mapping database.
+            this.writeBib(bib, text, zids, { replace: true });
             for ( zid in newkeys) {
                 yield LyZDatabase.updateKey(this, newkeys[zid], zid, bib);
             }
-            this.writeBib(bib, text, zids, { replace: true });
-            res = win
-                    .confirm(LyZLocale.getString("lyz-msg-confirm-update-lyx-docs", { bib }));
+            res = this.confirm(
+                LyZLocale.getString("lyz-msg-confirm-update-lyx-docs", { bib }),
+                LyZLocale.getString("lyz-msg-confirm-update-lyx-docs-title")
+            );
             if (!res)
                 return;
             

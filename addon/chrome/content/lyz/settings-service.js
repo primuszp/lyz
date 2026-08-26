@@ -16,6 +16,81 @@ var LyZSettings = {
         return Zotero.isWin ? "\\\\.\\pipe\\lyxpipe" : "~/.lyx/lyxpipe";
     },
 
+    resolvePath(path) {
+        if (Zotero.isWin || typeof path !== "string" || !path.startsWith("~/")) {
+            return path;
+        }
+        const home = Services.dirsvc.get("Home", Components.interfaces.nsIFile).path;
+        return home.replace(/[\\\\/]$/, "") + path.slice(1);
+    },
+
+    pipeExists(path) {
+        if (!path || Zotero.isWin) {
+            return false;
+        }
+        try {
+            const input = Components.classes["@mozilla.org/file/local;1"]
+                .createInstance(Components.interfaces.nsIFile);
+            const output = Components.classes["@mozilla.org/file/local;1"]
+                .createInstance(Components.interfaces.nsIFile);
+            input.initWithPath(path + ".in");
+            output.initWithPath(path + ".out");
+            return input.exists() && output.exists();
+        } catch (e) {
+            return false;
+        }
+    },
+
+    getMacLyXServerCandidates() {
+        if (Zotero.isWin) {
+            return [];
+        }
+        const home = Services.dirsvc.get("Home", Components.interfaces.nsIFile).path.replace(/[\\\\/]$/, "");
+        const base = home + "/Library/Application Support";
+        const candidates = [];
+        // LyX stores user data in versioned LyX-X.Y directories on macOS.
+        // Generate newest-first candidates instead of relying on XPCOM directory enumeration.
+        for (let major = 9; major >= 1; major--) {
+            for (let minor = 20; minor >= 0; minor--) {
+                candidates.push(base + "/LyX-" + major + "." + minor + "/.lyxpipe");
+            }
+        }
+        candidates.push(base + "/LyX/.lyxpipe");
+        return candidates;
+    },
+
+    getLinuxLyXServerCandidates() {
+        if (Zotero.isWin) {
+            return [];
+        }
+        const home = Services.dirsvc.get("Home", Components.interfaces.nsIFile).path.replace(/[\\\\/]$/, "");
+        const candidates = [];
+        try {
+            const xdgConfigHome = Services.env.get("XDG_CONFIG_HOME");
+            if (xdgConfigHome) {
+                candidates.push(xdgConfigHome.replace(/[\\\\/]$/, "") + "/lyx/lyxpipe");
+            }
+        } catch (e) {
+            // XDG_CONFIG_HOME is optional.
+        }
+        candidates.push(home + "/.config/lyx/lyxpipe");
+        candidates.push(home + "/.config/LyX/lyxpipe");
+        return candidates;
+    },
+
+    detectLyXServerPath(configuredPath) {
+        const resolvedPath = this.resolvePath(configuredPath);
+        if (Zotero.isWin || configuredPath !== this.getDefaultLyXServerPath()) {
+            return resolvedPath;
+        }
+        const candidates = [
+            resolvedPath,
+            ...this.getMacLyXServerCandidates(),
+            ...this.getLinuxLyXServerCandidates()
+        ];
+        return candidates.find(path => this.pipeExists(path)) || resolvedPath;
+    },
+
     getCharPref(name, fallback) {
         this.init();
         try {

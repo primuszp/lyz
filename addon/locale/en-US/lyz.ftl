@@ -163,6 +163,8 @@ lyz-msg-record-changed-title = Zotero record changed!
 
 ## Dialog messages — BibTeX update
 
+lyz-msg-confirm-update-bibtex-title = Update BibTeX database
+
 lyz-msg-confirm-update-bibtex =
     You are going to update BibTeX database:
     { "" }
@@ -183,6 +185,8 @@ lyz-msg-confirm-update-lyx-docs =
     Do you also want to update the associated LyX documents?
     This is only necessary when any author, title or year has been modified,
     or when the BibTeX key format has been changed.
+
+lyz-msg-confirm-update-lyx-docs-title = Update LyX documents
 
 lyz-msg-items-changed = { $count } item(s) changed or added.
 
@@ -266,7 +270,7 @@ lyz-server-no-filename =
     { "" }
     Make sure the LyX document is saved and the document window is active.
 
-lyz-server-pipe-not-exist = The specified LyXServer pipe does not exist.
+lyz-server-pipe-not-exist = The specified LyXServer pipe does not exist: { $path }
 
 lyz-server-wrong-path =
     Wrong path to LyX server:
