@@ -1,6 +1,12 @@
 LyZ
 ---
-LyZ is a plugin for [Zotero](http://www.zotero.org), which is intended to make working with LyX/Zotero more pleasant. The latest source code for this fork is available at [GitHub](https://github.com/primuszp/lyz). The latest stable release of this fork is available from [the GitHub releases page](https://github.com/primuszp/lyz/releases).
+LyZ is a plugin for [Zotero](https://www.zotero.org) that connects Zotero's library and BibTeX export with LyX through the LyXServer pipe. The latest stable version is [LyZ 5.0.71](https://github.com/primuszp/lyz/releases/tag/v5.0.71).
+
+Project documents:
+* [Changelog](CHANGELOG.md)
+* [Development and contribution guide](CONTRIBUTING.md)
+* [Roadmap](ROADMAP.md)
+* [Zotero 10 runtime test report](ZOTERO10_RUNTIME_TEST.md)
 
 Modernized fork
 ---------------
@@ -15,6 +21,8 @@ Main changes in this fork:
 * Added English, German, and Hungarian Fluent localization.
 * Updated icons and menu labels for the modern Zotero interface.
 * Fixed dialog titles and confirmation prompts so Zotero no longer shows generic JavaScript Application windows.
+* Added portable LyXServer path handling and automatic discovery of common macOS and Linux pipe locations.
+* Made bibliography writes transactional with respect to LyZ's key mappings: mappings are updated only after the file write succeeds.
 
 Features
 --------
@@ -29,15 +37,24 @@ Features
 * Persistent association of LyX documents and BibTeX databases.
 * Support for group cooperation.
 
-**NOTE:** As of version 4.0, LyZ is distributed from the [GitHub releases page](https://github.com/primuszp/lyz/releases).
-New updates will not be published to the location checked by previous versions of LyZ (the Mozilla Add-ons page).
-To receive new LyZ updates, please update to the latest version of LyZ.
+LyZ is distributed from the [GitHub releases page](https://github.com/primuszp/lyz/releases), not Mozilla Add-ons. Once a current release is installed, Zotero uses this fork's update manifest for subsequent updates.
 
 Installation and Settings
 -------------------------
-1. Download the lyz `.xpi` file from the [GitHub releases page](https://github.com/primuszp/lyz/releases).
-2. Install LyZ in Zotero by selecting Add-ons from the Tools menu and then clicking the gear icon in the Add-ons window, selecting "Install add-on from file" and selecting the lyz `.xpi` file.
-3. Open LyX and set LyXServer path (in LyX go to menu, Tools > Preferences... > Paths and set LyXServer pipe to): Windows users can use the default path setting in LyZ, i.e. `\\.\pipe\lyxpipe`. Linux and Mac users can use e.g. `~/.lyxpipe` and change the LyZ settings accordingly.
+1. Download `lyz.xpi` from the [latest GitHub release](https://github.com/primuszp/lyz/releases/latest).
+2. In Zotero, open **Tools > Plugins**, choose **Tools for all plugins > Install Plugin From File**, and select `lyz.xpi`.
+3. In LyX, open **LyX/Tools > Preferences > Paths** and set **LyXServer pipe**. Use the same base path in **Zotero > LyZ > Settings**.
+
+Recommended pipe paths:
+
+| Platform | Recommended base path | Notes |
+| --- | --- | --- |
+| macOS | `~/.lyx/lyxpipe` | Create `~/.lyx` once if it does not exist, then restart LyX. LyZ can also discover live pipes under `~/Library/Application Support/LyX-X.Y/.lyxpipe`. |
+| Linux | `~/.lyx/lyxpipe` | LyZ also checks common XDG locations such as `~/.config/lyx/lyxpipe`. The parent directory must exist. |
+| Windows | `\\.\pipe\lyxpipe` | This is a Windows named-pipe path, not a normal file-system path. |
+
+The path is the base name: LyX creates the `.in` and `.out` endpoints itself. Restart LyX after changing this preference.
+
 4. By default all characters are escaped, e.g. š becomes \v{s}. Set `extensions.lyz.use_utf8` to true in `about:config` to avoid escaping (in case you need to use non-latin scripts such as Chinese).
 5. Open document in LyX.
 
@@ -80,7 +97,7 @@ Menu command “Update BibTex” will update BibTeX database of the active LyX d
 
 When a single BibTeX database is shared among several authors, e.g. using version control system such as SVN and CVS, LyZ database is updated from local working copy of BibTeX database.
 
-Only current LyX document will be updated. Multiple document update is implemented, but seems unreliable. Needs more testing…
+The active document determines which BibTeX database is updated. If a key changes, LyZ can offer to rewrite associated LyX documents. This multi-document rewrite path creates `.lyz` backups, but it should still be used with version-controlled or otherwise backed-up documents; broader automated coverage is planned in the [roadmap](ROADMAP.md).
 
 Synchronization between LyX/BibTeX/LyZ
 --------------------------------------
@@ -99,7 +116,7 @@ Notes on usage
 
 * Old writing projects can be deleted from LyZ menu. When the record of BibTeX database is deleted, all associated LyX document records are also deleted. When LyX document is deleted, associated BibTeX database will remain untouched as it may be used by another document. The actual file won’t be deleted.
 
-* BibTeX database is uniformly exported to UTF8 and all characters are escaped. Exporting to doesn’t seem to have any advantages. When your references contain extra characters such as the degree symbol, add `\usepackage{textcomp}` to your preamble.
+* BibTeX databases are written as UTF-8. By default, supported non-ASCII characters are converted to LaTeX escapes. When your references contain symbols requiring additional LaTeX support, such as the degree symbol, add the appropriate package (for example `\usepackage{textcomp}`) to the document preamble.
 
 * URLs in bibliography. Use bibliography style that can handle URLs, such as apalike, or add `\usepackage{url}` to your preamble.
 
@@ -111,7 +128,7 @@ Problems, Ideas, Requests
 -------------------------
 Please follow these tips to find out the source of your problem:
 
-* Run Lyx in debugging mode from commandline by (Linux and Mac users change accordingly)
+* Run LyX in LyXServer debugging mode. The executable path differs by platform:
 
         lyx.exe -dbg lyxserver
 
@@ -119,7 +136,7 @@ Please follow these tips to find out the source of your problem:
 
 * To send a command from Lyz, you simply use one of the functions, e.g. “Cite in Lyx” or use command line, viz. [http://wiki.lyx.org/LyX/LyXServer](http://wiki.lyx.org/LyX/LyXServer).
 
-* Also you can use a variant of the last version of Lyz, which has additional menu item “Test…”. This will allow you to send single commands to Lyx. Currently Lyz uses the following commands (code in the parentheses indicates usage):
+* Use **LyZ > LyX Command…** to send a diagnostic command. LyZ currently uses commands including:
 
         server-get-filename (server-get-filename)
         citation-insert (citation-insert:LYZ:author2010title)
@@ -129,7 +146,7 @@ Please follow these tips to find out the source of your problem:
         buffer-close (buffer-close)
         file-open (file-open:path, where path is the response from server-get-filename)
 
-* All functions Lyz has are patched together using these commands. The most trouble some seems to be the server-get-filename.
+* Most integration operations are composed from these commands. `server-get-filename` requires an active, saved LyX document; an empty response in any other state does not indicate a broken pipe.
 
 * Extract useful information from Zotero’s Error Console (by starting Zotero on the command line with the `--jsconsole` option) and from commandline where you ran `lyx.exe -dbg lyxserver`.
 
@@ -138,10 +155,10 @@ Please follow these tips to find out the source of your problem:
 Common Issues
 -------------
 ### Update BibTeX does not work
-Some users have found that the Update BibTeX command stops working unexpectedly. One possible solution is to edit the `lyz.sqlite` file in the Zotero data directory directly and to remove any bibliography entries in it that look malformed (e.g. some of their fields are empty). To edit `lyz.sqlite`, a SQLite editor is needed. The [sqlite-manager Firefox addon](https://code.google.com/p/sqlite-manager/) is a light-weight option. If you experience this issue and have any insight on what causes it, please contact the developer via GitHub (open a new issue or comment on one of the closed issues related to Update BibTeX).
+First verify that the LyX document is saved and active, the configured `.bib` file exists and is writable, and the LyXServer pipe is live. Do not edit `lyz.sqlite` manually: collect Zotero Error Console output and LyXServer debug output, then open a [GitHub issue](https://github.com/primuszp/lyz/issues) with reproduction steps.
 
 ### Using a non-standard lyxpipe
-On Windows the lyxpipe path (`\\.\pipe\lyxpipe`) is a special path and not a real file. You should not try to change this path to something else.
+LyZ preserves explicitly configured custom paths. Automatic macOS/Linux discovery is used only while the portable default `~/.lyx/lyxpipe` is configured. If the pipe is missing, the error message includes the resolved path that LyZ attempted to use. On Windows, `\\.\pipe\lyxpipe` is a special named-pipe path and not a normal file.
 
 ### Compatibility note
 This fork is intended for Zotero 7-10. Older upstream LyZ releases were built for earlier Zotero generations; use this fork for current Zotero versions.
@@ -152,9 +169,7 @@ LyZ was originally written by Petr Šimon and later maintained on GitHub by Will
 
 How to Contribute
 -----------------
-1. Star the repository on GitHub. The number of stars on GitHub is one of the most visible metrics for gauging the level of interest in project.
-2. Encourage others to use the project, either directly or by writing a blog post. Besides GitHub stars, the other metric for gauging interest in the project is the total number of downloads of the xpi.
-3. Submit new features or translations. However, keep in mind that new features add to the maintenance burden of the project. So get in contact before putting a lot of time into a new feature.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, test requirements, architecture boundaries, and release checklist. Planned work is tracked in [ROADMAP.md](ROADMAP.md).
 
 Development checks
 ------------------
@@ -162,6 +177,8 @@ The repository includes dependency-free Node.js checks. Use a current Node.js re
 
     npm test
     npm run check
+    make clean all
+    unzip -t build/lyz.xpi
 
 Credits
 -------

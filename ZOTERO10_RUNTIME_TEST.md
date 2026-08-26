@@ -6,7 +6,7 @@ Date: 2026-08-26
 
 - Zotero 10.0.1 on macOS
 - LyX 2.5
-- LyZ 5.0.71 built from the current working tree
+- LyZ 5.0.71 release build
 - XPI: `build/lyz.xpi`
 - Isolated test files: `/tmp/lyz-zotero10-test`
 
@@ -28,6 +28,8 @@ Date: 2026-08-26
 
 ## Defects found
 
+Both defects found during the runtime session were fixed before the 5.0.71 release. The final XPI was rebuilt, reinstalled, and retested.
+
 ### Z10-RUNTIME-001: Missing platform-aware LyXServer discovery
 
 Severity: high for first-run usability.
@@ -38,7 +40,7 @@ LyZ correctly keeps the portable `~/.lyx/lyxpipe` default, but LyX 2.5 on this m
 
 Without automatic discovery, communication fails unless the user manually changes the setting or creates compatibility links. The runtime test continued after saving the actual pipe path in the LyZ preferences pane.
 
-Resolution: keep `~/.lyx/lyxpipe` as the visible, user-overridable default and detect live pipes in the versioned macOS `LyX-*` configuration directories and common Linux/XDG locations. Windows continues to use `\\.\pipe\lyxpipe`.
+Resolution: keep `~/.lyx/lyxpipe` as the visible, user-overridable default and detect live pipes in the versioned macOS `LyX-*` configuration directories and common Linux/XDG locations. Windows continues to use `\\.\pipe\lyxpipe`. The final local setup uses `~/.lyx/lyxpipe`; after creating the missing `~/.lyx` parent directory and restarting LyX, both FIFO endpoints were created and live Zotero-LyX communication succeeded.
 
 ### Z10-RUNTIME-002: Generic JavaScript Application titles during BibTeX update
 
@@ -53,6 +55,17 @@ Other tested LyZ prompts have specific localized titles.
 
 Resolution: both confirmations now use the existing titled `confirm()` helper and localized English, German and Hungarian titles.
 
+## Release verification
+
+- Automated tests: 12 passed, 0 failed.
+- All add-on JavaScript files passed syntax validation.
+- `build/lyz.xpi` passed ZIP integrity validation.
+- The XPI was installed as LyZ 5.0.71 and survived a Zotero restart.
+- The published GitHub asset was downloaded again and matched the local SHA-256:
+  `e7d963357d633967ecd6e13b4e90fa78dac3716590754c2fad51bb5f95604806`.
+- The public update manifest advertises version 5.0.71 for Zotero 7 through 10.
+- Release: <https://github.com/primuszp/lyz/releases/tag/v5.0.71>
+
 ## Test boundary
 
-The destructive parts were limited to the isolated test files and temporary LyZ mappings. No Zotero library item metadata was edited or deleted. The key-changing document-rewrite branch was not forced by modifying a real Zotero item; it should receive a dedicated isolated regression test when the defects above are fixed.
+The destructive parts were limited to the isolated test files and temporary LyZ mappings. No Zotero library item metadata was edited or deleted. The key-changing multi-document rewrite branch was not forced by modifying a real Zotero item; dedicated isolated regression coverage remains a roadmap item.
