@@ -19,12 +19,12 @@ var LyZBootstrapUI = {
         const hasStylesheet = Array.from(doc.childNodes).some(node =>
             node.nodeType === 7 &&
             node.target === "xml-stylesheet" &&
-            node.data.includes("chrome://lyz/skin/overlay.css")
+            node.data.includes("chrome://lyz-skin/content/overlay.css")
         );
         if (!hasStylesheet) {
             const stylesheet = doc.createProcessingInstruction(
                 "xml-stylesheet",
-                'id="lyz-overlay-stylesheet" href="chrome://lyz/skin/overlay.css" type="text/css"'
+                'id="lyz-overlay-stylesheet" href="chrome://lyz-skin/content/overlay.css" type="text/css"'
             );
             doc.insertBefore(stylesheet, doc.documentElement);
         }
@@ -59,13 +59,10 @@ var LyZBootstrapUI = {
         this.appendMenuItem(doc, popup, "lyz-send", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommandSync("checkAndCite"), LyZLocale.getAttribute("lyz-cite-label", "tooltiptext"));
         this.appendMenuItem(doc, popup, "lyz-update-bibtex", LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommandSync("updateBibtexAll"), LyZLocale.getAttribute("lyz-update-bibtex-label", "tooltiptext"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-delete-bib", LyZLocale.getAttribute("lyz-delete-bib-label", "label"), () => bootstrap.runCommandSync("dbDeleteBib"));
-        this.appendMenuItem(doc, popup, "lyz-delete-doc", LyZLocale.getAttribute("lyz-delete-doc-label", "label"), () => bootstrap.runCommandSync("dbDeleteDoc"));
-        popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-rename-bib", LyZLocale.getAttribute("lyz-rename-bib-label", "label"), () => bootstrap.runCommandSync("dbRenameBib"));
-        this.appendMenuItem(doc, popup, "lyz-rename-doc", LyZLocale.getAttribute("lyz-rename-doc-label", "label"), () => bootstrap.runCommandSync("dbRenameDoc"));
+        this.appendMenuItem(doc, popup, "lyz-manager", LyZLocale.getAttribute("lyz-manager-label", "label"), () => bootstrap.runCommandSync("mappingManager"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
         this.appendMenuItem(doc, popup, "lyz-settings", LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommandSync("settings"));
+        this.appendMenuItem(doc, popup, "lyz-diagnostics", LyZLocale.getAttribute("lyz-diagnostics-label", "label"), () => bootstrap.runCommandSync("databaseDiagnostics"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
         this.appendMenuItem(doc, popup, "lyz-test", LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommandSync("test"));
     },
@@ -112,13 +109,10 @@ var LyZBootstrapUI = {
         this.appendMenuItem(doc, popup, `lyz-${prefix}-cite`, LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommand("checkAndCite"));
         this.appendMenuItem(doc, popup, `lyz-${prefix}-update-bibtex`, LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommand("updateBibtexAll"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-bib`, LyZLocale.getAttribute("lyz-delete-bib-label", "label"), () => bootstrap.runCommand("dbDeleteBib"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-delete-doc`, LyZLocale.getAttribute("lyz-delete-doc-label", "label"), () => bootstrap.runCommand("dbDeleteDoc"));
-        popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-bib`, LyZLocale.getAttribute("lyz-rename-bib-label", "label"), () => bootstrap.runCommand("dbRenameBib"));
-        this.appendMenuItem(doc, popup, `lyz-${prefix}-rename-doc`, LyZLocale.getAttribute("lyz-rename-doc-label", "label"), () => bootstrap.runCommand("dbRenameDoc"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-manager`, LyZLocale.getAttribute("lyz-manager-label", "label"), () => bootstrap.runCommand("mappingManager"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
         this.appendMenuItem(doc, popup, `lyz-${prefix}-settings`, LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommand("settings"));
+        this.appendMenuItem(doc, popup, `lyz-${prefix}-diagnostics`, LyZLocale.getAttribute("lyz-diagnostics-label", "label"), () => bootstrap.runCommand("databaseDiagnostics"));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
         this.appendMenuItem(doc, popup, `lyz-${prefix}-test`, LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommand("test"));
     },
@@ -139,7 +133,7 @@ var LyZBootstrapUI = {
             if (
                 node.nodeType === 7 &&
                 node.target === "xml-stylesheet" &&
-                node.data.includes("chrome://lyz/skin/overlay.css")
+                node.data.includes("chrome://lyz-skin/content/overlay.css")
             ) {
                 node.remove();
                 break;

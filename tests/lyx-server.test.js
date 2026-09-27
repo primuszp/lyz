@@ -122,3 +122,62 @@ test("Zotero menu operations are serialized and a failure does not block the nex
     assert.equal(await second, true);
     assert.deepEqual(events, ["first-start", "first-end", "second"]);
 });
+
+test("unresolved recovery blocks mapping management but leaves settings available", async () => {
+    let recoveryAttempts = 0;
+    let writes = 0;
+    const context = vm.createContext({
+        Components: { classes: {}, interfaces: {} },
+        Services: { wm: { getMostRecentWindow: () => null } },
+        LyZKeyUpdate: { recoverPending: async () => { recoveryAttempts++; return false; } },
+        Zotero: { logError() {}, Lyz: {
+            initialized: true, recoveryRequired: true,
+            dbDeleteBib: () => { writes++; }, settings: () => true
+        } }
+    });
+    vm.runInContext(readFileSync(resolve(__dirname, "../addon/bootstrap.js"), "utf8"), context);
+    const bootstrap = context.LyZBootstrap;
+    bootstrap.ensureLyzInitialized = async () => {};
+    assert.equal(await bootstrap.runCommand("dbDeleteBib"), false);
+    assert.equal(writes, 0);
+    assert.equal(recoveryAttempts, 1);
+    assert.equal(await bootstrap.runCommand("settings"), true);
+    assert.equal(recoveryAttempts, 1);
+    context.Zotero.Lyz.initialized = false;
+    bootstrap.ensureLyzInitialized = async () => { context.Zotero.Lyz.initialized = true; };
+    assert.equal(await bootstrap.runCommand("dbDeleteBib"), false);
+    assert.equal(recoveryAttempts, 1, "startup already handled recovery; do not prompt again in this command");
+});
+
+test("an unsafe database blocks data commands while diagnostics, settings and LyX commands remain usable", async () => {
+    const messages = [];
+    let writes = 0;
+    const context = vm.createContext({
+        Components: { classes: {}, interfaces: {} },
+        Services: { wm: { getMostRecentWindow: () => null } },
+        LyZKeyUpdate: { recoverPending: () => { throw new Error("must not recover an unsafe DB"); } },
+        Zotero: { logError() {}, Lyz: {
+            initialized: true, databaseBlocked: true, recoveryRequired: true,
+            showDatabaseBlocked: () => messages.push("blocked"),
+            dbDeleteBib: () => { writes++; }, checkAndCite: () => { writes++; },
+            settings: () => "settings", test: () => "test", databaseDiagnostics: () => "diagnostics",
+            mappingManager: () => "manager", mappingInventory: () => "inventory"
+        } }
+    });
+    vm.runInContext(readFileSync(resolve(__dirname, "../addon/bootstrap.js"), "utf8"), context);
+    const bootstrap = context.LyZBootstrap;
+    bootstrap.ensureLyzInitialized = async () => {};
+    assert.equal(await bootstrap.runCommand("dbDeleteBib"), false);
+    assert.equal(await bootstrap.runCommand("checkAndCite"), false);
+    assert.equal(writes, 0);
+    assert.deepEqual(messages, ["blocked", "blocked"]);
+    assert.equal(await bootstrap.runCommand("settings"), "settings");
+    assert.equal(await bootstrap.runCommand("test"), "test");
+    assert.equal(await bootstrap.runCommand("databaseDiagnostics"), "diagnostics");
+    assert.equal(await bootstrap.runCommand("mappingManager"), "manager");
+    assert.equal(await bootstrap.runCommand("mappingInventory"), "inventory");
+    context.Zotero.Lyz.initialized = false;
+    bootstrap.ensureLyzInitialized = async () => { context.Zotero.Lyz.initialized = true; };
+    assert.equal(await bootstrap.runCommand("dbDeleteBib"), false);
+    assert.deepEqual(messages, ["blocked", "blocked"], "startup already reports the problem once");
+});

@@ -1,4 +1,5 @@
 content	lyz	chrome/content/lyz/
+content	lyz-skin	chrome/skin/default/lyz/
 locale	lyz	en-US	chrome/locale/en-US/lyz/
 locale	lyz	de-DE	chrome/locale/de-DE/lyz/
 locale	lyz	hu-HU	chrome/locale/hu-HU/lyz/

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="UTF-8" />
+  <title>LyZ</title>
+  <link rel="stylesheet" href="mapping-manager.css" />
+  <script src="mapping-manager.js" defer="defer"></script>
+</head>
+<body>
+  <header>
+    <div><p class="eyebrow">LyZ</p><h1 data-string="lyz-manager-title"></h1><p data-string="lyz-manager-description"></p></div>
+    <div class="toolbar"><button id="refresh" data-string="lyz-manager-refresh"></button><button id="export" data-string="lyz-manager-export"></button></div>
+  </header>
+  <p id="mode" class="notice" role="status"></p>
+  <p id="message" role="status" aria-live="polite" hidden="hidden"></p>
+  <nav id="tabs" aria-label="LyZ">
+    <button data-view="docs" data-string="lyz-manager-docs" aria-pressed="true"></button>
+    <button data-view="bibs" data-string="lyz-manager-bibs" aria-pressed="false"></button>
+    <button data-view="keys" data-string="lyz-manager-keys" aria-pressed="false"></button>
+    <button data-view="recovery" data-string="lyz-manager-recovery" aria-pressed="false"></button>
+    <button data-view="archive" data-string="lyz-manager-archive" aria-pressed="false"></button>
+  </nav>
+  <div class="filters">
+    <div class="search"><label for="search" data-string="lyz-manager-search"></label><input id="search" type="search" /></div>
+    <label class="check"><input id="problems" type="checkbox" /><span data-string="lyz-manager-problems"></span></label>
+  </div>
+  <div id="table-wrap" tabindex="0"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div>
+  <div class="pagination"><span id="count" role="status"></span><div><button id="previous" data-string="lyz-manager-previous"></button><button id="next" data-string="lyz-manager-next"></button></div></div>
+  <section id="actions">
+    <p id="selection" data-string="lyz-manager-select"></p>
+    <div class="toolbar"><button id="relink" disabled="disabled" data-string="lyz-manager-relink"></button><button id="remove" disabled="disabled" data-string="lyz-manager-remove"></button></div>
+  </section>
+  <section id="preview" hidden="hidden" aria-labelledby="preview-heading">
+    <h2 id="preview-heading" data-string="lyz-manager-preview"></h2>
+    <dl><dt data-string="lyz-manager-operation"></dt><dd id="preview-action"></dd><dt data-string="lyz-manager-from"></dt><dd id="preview-source"></dd><dt data-string="lyz-manager-to"></dt><dd id="preview-target"></dd></dl>
+    <p id="preview-counts"></p><ul id="affected"></ul>
+    <p id="preview-warning" class="notice"></p>
+    <label class="check"><input id="acknowledge" type="checkbox" /><span data-string="lyz-manager-acknowledge"></span></label>
+    <div class="toolbar"><button id="apply" class="primary" disabled="disabled" data-string="lyz-manager-apply"></button><button id="cancel" data-string="lyz-manager-cancel"></button></div>
+  </section>
+  <footer data-string="lyz-manager-footer"></footer>
+</body>
+</html>

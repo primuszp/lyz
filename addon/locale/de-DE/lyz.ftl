@@ -1,6 +1,79 @@
 ### LyZ — Zotero plugin for LyX integration
 ### Locale: German (de-DE)
 
+## Mapping manager
+
+lyz-manager-label =
+    .label = Zuordnungen verwalten…
+lyz-manager-title = Dokument- und Bibliografiezuordnungen
+lyz-manager-description = Verknüpfte Dateien suchen, Probleme prüfen und Zuordnungsänderungen überprüfen.
+lyz-manager-refresh = Aktualisieren
+lyz-manager-export = Diagnose exportieren
+lyz-manager-docs = Dokumente
+lyz-manager-bibs = Bibliografien
+lyz-manager-keys = Zitierschlüssel
+lyz-manager-recovery = Unterbrochene Aktualisierungen
+lyz-manager-archive = Aufbewahrte Datensätze
+lyz-manager-search = Dateipfade, Titel, Eintragskennungen oder Zitierschlüssel suchen
+lyz-manager-problems = Nur Probleme
+lyz-manager-previous = Zurück
+lyz-manager-next = Weiter
+lyz-manager-select = Wählen Sie ein Dokument oder eine Bibliografie zur Verwaltung der Zuordnung.
+lyz-manager-select-record = { $path } auswählen
+lyz-manager-relink = Neue Datei wählen…
+lyz-manager-remove = Zuordnung entfernen…
+lyz-manager-preview = Änderung überprüfen
+lyz-manager-operation = Vorgang
+lyz-manager-from = Aktueller Pfad
+lyz-manager-to = Neuer Pfad
+lyz-manager-acknowledge = Ich habe die betroffenen Zuordnungen geprüft.
+lyz-manager-apply = Zuordnungsänderung speichern
+lyz-manager-cancel = Abbrechen
+lyz-manager-footer = Änderungen betreffen nur LyZ-Zuordnungen. Dateien und Zitierschlüssel werden nicht umgeschrieben. Originaldatensätze bleiben erhalten.
+lyz-manager-ready = Zuordnungen können bearbeitet werden. Wählen Sie eine Zeile und prüfen Sie die Änderung vor dem Speichern.
+lyz-manager-readonly = Nur Ansicht: Datenbankprobleme, unlesbare Datensätze oder eine unterbrochene Aktualisierung verhindern Änderungen. Exportieren Sie eine Diagnose zur Untersuchung.
+lyz-manager-document = Dokumentpfad
+lyz-manager-bibliography = Bibliografiepfad
+lyz-manager-file-status = Dateistatus
+lyz-manager-bib-status = Bibliografiestatus
+lyz-manager-documents = Dokumente
+lyz-manager-citation-keys = Schlüssel
+lyz-manager-item = Zotero-Eintrag
+lyz-manager-zid = Eintragskennung
+lyz-manager-key = Zitierschlüssel
+lyz-manager-status = Status
+lyz-manager-identifier = Aktualisierungskennung
+lyz-manager-details = Details
+lyz-manager-record-type = Datensatztyp
+lyz-manager-original-path = Originalpfad
+lyz-manager-state-ok = Verfügbar
+lyz-manager-state-missing = Datei fehlt
+lyz-manager-state-invalid = Ungültiger Pfad oder Datei
+lyz-manager-state-unreadable = Datei nicht lesbar
+lyz-manager-state-item-missing = Zotero-Eintrag nicht verfügbar
+lyz-manager-state-prepared = Aktualisierung unterbrochen
+lyz-manager-state-committed = Aktualisierung abgeschlossen
+lyz-manager-empty = Keine passenden Datensätze.
+lyz-manager-count = { $first }–{ $last } von { $total } Datensätzen
+lyz-manager-affected-count = Betroffen: { $documents } Dokumentzuordnung(en), { $keys } Zitierschlüsselzuordnung(en).
+lyz-manager-relink-doc = Dokument neu verknüpfen
+lyz-manager-relink-bib = Bibliografie neu verknüpfen
+lyz-manager-delete-doc = Dokumentzuordnung entfernen
+lyz-manager-delete-bib = Bibliografiezuordnungen entfernen
+lyz-manager-removed = Zuordnung entfernt; Datei bleibt erhalten
+lyz-manager-relink-warning = Der in LyZ gespeicherte Pfad wird geändert. Prüfen Sie den Bibliografiepfad in LyX separat; das Dokument wird hierbei nicht bearbeitet. Originalzuordnungen bleiben erhalten.
+lyz-manager-remove-warning = Nur Zuordnungen werden entfernt. Das Entfernen einer Bibliografie entfernt auch ihre Dokument- und Schlüsselzuordnungen. Dateien bleiben unverändert und Originaldatensätze erhalten.
+lyz-manager-source-missing = Die Originaldatei fehlt oder ihr alter Pfad kann nicht aufgelöst werden. Prüfen Sie, ob die gewählte Datei der beabsichtigte Ersatz ist.
+lyz-manager-choose-file = Verschobene Datei auswählen
+lyz-manager-saved = Zuordnungsänderung gespeichert. Originaldatensätze finden Sie unter Aufbewahrte Datensätze.
+lyz-manager-error-blocked = Zuordnungsänderungen bleiben bis zur erfolgreichen Datenbankprüfung und Wiederherstellung unterbrochener Aktualisierungen gesperrt.
+lyz-manager-error-stale = Zuordnungen oder Dateien haben sich seit dieser Vorschau geändert. Aktualisieren Sie die Liste und erstellen Sie eine neue Vorschau.
+lyz-manager-error-selection = Wählen Sie zuerst eine Dokument- oder Bibliografiezuordnung.
+lyz-manager-error-file = Die Datei ist nicht verfügbar oder keine gültige LyX/BibTeX-Datei: { $path }
+lyz-manager-error-unchanged = Die gewählte Datei hat bereits diese Zuordnung.
+lyz-manager-error-occupied = Der gewählte Pfad ist bereits zugeordnet. Automatisches Zusammenführen wird nicht unterstützt: { $path }
+lyz-manager-error-mismatch = Die Ersatzdatei stimmt nicht mit der Originaldatei oder den Bibliografieeintrags-/Schlüsselzuordnungen überein. Wählen Sie die entsprechende verschobene Datei.
+
 ## Menu labels
 
 lyz-menu-label =
@@ -34,6 +107,28 @@ lyz-settings-label =
 
 lyz-test-label =
     .label = LyX-Befehl…
+
+## Database diagnostics
+
+lyz-diagnostics-label =
+    .label = Datenbankdiagnose exportieren…
+
+lyz-msg-database-title = LyZ-Datenbankprüfung
+
+lyz-msg-database-blocked =
+    LyZ konnte seine Zuordnungsdatenbank nicht sicher öffnen oder migrieren:
+    { $error }
+    Datenänderungen sind gesperrt. Einstellungen, LyX-Befehle und Datenbankdiagnose exportieren bleiben verfügbar.
+    Exportieren Sie einen Bericht über das LyZ-Menü zur Fehleranalyse. Bewahren Sie die Originaldatenbank und Sicherungen auf; bearbeiten Sie lyz.sqlite nicht manuell.
+
+lyz-msg-diagnostics-title = LyZ-Datenbankdiagnose exportieren
+
+lyz-msg-diagnostics-saved =
+    Bericht gespeichert unter: { $path }
+    Er enthält lokale Dateipfade, Zotero-Eintragskennungen, Zitierschlüssel und Wiederherstellungsdatensätze. Prüfen Sie ihn vor der Weitergabe.
+    Dokument- und Bibliografieinhalte sind nicht enthalten. Dieser Bericht ist keine wiederherstellbare SQLite-Sicherung.
+
+lyz-msg-diagnostics-failed = Der Diagnosebericht konnte nicht gespeichert werden: { $error }
 
 ## Preferences panel
 
@@ -189,6 +284,28 @@ lyz-msg-confirm-update-lyx-docs =
 lyz-msg-confirm-update-lyx-docs-title = LyX-Dokumente aktualisieren
 
 lyz-msg-key-update-title = LyZ-Zitationsschlüssel aktualisieren
+
+lyz-msg-recovery-title = LyZ: unterbrochene Aktualisierung wiederherstellen
+
+lyz-msg-recovery-confirm =
+    Nach einer unterbrochenen Aktualisierung müssen diese Dateien zurückgesetzt werden:
+    { $files }
+    Schließen Sie alle betroffenen Dokumente in sämtlichen LyX-Fenstern, bevor Sie fortfahren.
+    OK stellt geprüfte Sicherungskopien wieder her. Abbrechen sperrt LyZ-Datenänderungen bis zum Abschluss der Wiederherstellung.
+
+lyz-msg-recovery-complete =
+    Der vorherige Dateistand wurde wiederhergestellt. Die ursprünglichen Zuordnungen wurden beibehalten:
+    { $files }
+    Geprüfte Sicherungskopien bleiben erhalten. Sie können die Dokumente in LyX erneut öffnen.
+
+lyz-msg-recovery-blocked =
+    Sichere Wiederherstellung nicht möglich für: { $path }
+    { $error }
+    LyZ-Datenänderungen sind gesperrt. Externe Änderungen werden nicht überschrieben.
+    Beibehaltene Sicherungskopien oder Protokollkennung:
+    { $backups }
+
+lyz-msg-key-update-journal-retained = Die Aktualisierung wurde abgeschlossen, aber ihr Wiederherstellungsprotokoll konnte nicht entfernt werden. LyZ prüft Dateien und Zuordnungen vor der nächsten Datenänderung oder beim Start.
 
 lyz-msg-key-update-missing-item = Zotero-Eintrag { $zid } ist nicht verfügbar. Die Aktualisierung wurde zum Schutz bestehender Zitate abgebrochen.
 

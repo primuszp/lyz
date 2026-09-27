@@ -20,9 +20,12 @@ var LyZBootstrap = {
         this.rootURI = rootURI;
         this.debug("init start: " + rootURI, true);
         this.installCompatibilityShims();
+        this.registerChrome();
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/locale-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/settings-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/database-service.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/diagnostics-service.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/mapping-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bibtex-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bootstrap-ui.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/lyx-server.js");
@@ -106,7 +109,7 @@ var LyZBootstrap = {
             ["locale", "lyz", "en-US", "chrome/locale/en-US/lyz/"],
             ["locale", "lyz", "de-DE", "chrome/locale/de-DE/lyz/"],
             ["locale", "lyz", "hu-HU", "chrome/locale/hu-HU/lyz/"],
-            ["skin", "lyz", "default", "chrome/skin/default/lyz/"]
+            ["content", "lyz-skin", "chrome/skin/default/lyz/"]
         ]);
         this.debug("chrome registered");
     },
@@ -211,28 +214,18 @@ var LyZBootstrap = {
             },
             {
                 menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-delete-bib-label", "label")),
-                onCommand: () => this.runCommand("dbDeleteBib")
-            },
-            {
-                menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-delete-doc-label", "label")),
-                onCommand: () => this.runCommand("dbDeleteDoc")
-            },
-            {
-                menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-rename-bib-label", "label")),
-                onCommand: () => this.runCommand("dbRenameBib")
-            },
-            {
-                menuType: "menuitem",
-                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-rename-doc-label", "label")),
-                onCommand: () => this.runCommand("dbRenameDoc")
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-manager-label", "label")),
+                onCommand: () => this.runCommand("mappingManager")
             },
             {
                 menuType: "menuitem",
                 onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-settings-label", "label")),
                 onCommand: () => this.runCommand("settings")
+            },
+            {
+                menuType: "menuitem",
+                onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-diagnostics-label", "label")),
+                onCommand: () => this.runCommand("databaseDiagnostics")
             },
             {
                 menuType: "menuitem",
@@ -248,13 +241,28 @@ var LyZBootstrap = {
         }
     },
 
-    runCommand(command) {
-        var operation = this.commandQueue.then(() => this.ensureLyzInitialized())
-            .then(() => Zotero.Lyz[command]())
+    runCommand(command, ...args) {
+        var initializedBefore;
+        var operation = this.commandQueue.then(() => {
+            initializedBefore = !!Zotero.Lyz.initialized;
+            return this.ensureLyzInitialized();
+        })
+            .then(async () => {
+                var dataCommand = !["settings", "test", "databaseDiagnostics", "mappingManager", "mappingInventory"].includes(command);
+                if (Zotero.Lyz.databaseBlocked && dataCommand) {
+                    if (initializedBefore) Zotero.Lyz.showDatabaseBlocked();
+                    return false;
+                }
+                if (Zotero.Lyz.recoveryRequired && dataCommand) {
+                    // Initialization already offered recovery once for this command.
+                    if (!initializedBefore || !await LyZKeyUpdate.recoverPending(Zotero.Lyz)) return false;
+                }
+                return Zotero.Lyz[command](...args);
+            })
             .catch(e => {
                 const win = Services.wm.getMostRecentWindow("navigator:browser");
                 Zotero.logError(e);
-                if (win) {
+                if (win && !["mappingInventory", "previewMappingChange", "applyMappingChange"].includes(command)) {
                     win.alert("LyZ error:\n" + e);
                 }
                 throw e;

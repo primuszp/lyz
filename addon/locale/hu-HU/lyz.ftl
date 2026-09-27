@@ -1,6 +1,79 @@
 ### LyZ — Zotero plugin for LyX integration
 ### Locale: Hungarian (hu-HU)
 
+## Mapping manager
+
+lyz-manager-label =
+    .label = Hozzárendelések kezelése…
+lyz-manager-title = Dokumentumok és bibliográfiák hozzárendelései
+lyz-manager-description = Keresd meg a kapcsolt fájlokat, ellenőrizd a hibákat, és nézd át a módosításokat mentés előtt.
+lyz-manager-refresh = Frissítés
+lyz-manager-export = Diagnosztika exportálása
+lyz-manager-docs = Dokumentumok
+lyz-manager-bibs = Bibliográfiák
+lyz-manager-keys = Hivatkozási kulcsok
+lyz-manager-recovery = Félbemaradt frissítések
+lyz-manager-archive = Megőrzött rekordok
+lyz-manager-search = Keresés útvonal, cím, elemazonosító vagy hivatkozási kulcs alapján
+lyz-manager-problems = Csak a hibák
+lyz-manager-previous = Előző
+lyz-manager-next = Következő
+lyz-manager-select = Válassz egy dokumentumot vagy bibliográfiát a hozzárendelés kezeléséhez.
+lyz-manager-select-record = Kiválasztás: { $path }
+lyz-manager-relink = Új fájl kiválasztása…
+lyz-manager-remove = Hozzárendelés eltávolítása…
+lyz-manager-preview = Módosítás áttekintése
+lyz-manager-operation = Művelet
+lyz-manager-from = Jelenlegi útvonal
+lyz-manager-to = Új útvonal
+lyz-manager-acknowledge = Átnéztem az érintett hozzárendeléseket.
+lyz-manager-apply = Hozzárendelés módosításának mentése
+lyz-manager-cancel = Mégse
+lyz-manager-footer = A módosítások csak a LyZ hozzárendeléseit érintik. A fájlok és a hivatkozási kulcsok nem változnak. Az eredeti rekordok megmaradnak.
+lyz-manager-ready = A hozzárendelések szerkeszthetők. Válassz egy sort, és mentés előtt nézd át a módosítást.
+lyz-manager-readonly = Csak megtekintés: adatbázishiba, olvashatatlan rekord vagy félbemaradt frissítés miatt nem lehet módosítani. A vizsgálathoz exportálj diagnosztikát.
+lyz-manager-document = Dokumentum útvonala
+lyz-manager-bibliography = Bibliográfia útvonala
+lyz-manager-file-status = Fájl állapota
+lyz-manager-bib-status = Bibliográfia állapota
+lyz-manager-documents = Dokumentumok
+lyz-manager-citation-keys = Kulcsok
+lyz-manager-item = Zotero-elem
+lyz-manager-zid = Elem azonosítója
+lyz-manager-key = Hivatkozási kulcs
+lyz-manager-status = Állapot
+lyz-manager-identifier = Frissítés azonosítója
+lyz-manager-details = Részletek
+lyz-manager-record-type = Rekord típusa
+lyz-manager-original-path = Eredeti útvonal
+lyz-manager-state-ok = Elérhető
+lyz-manager-state-missing = Hiányzó fájl
+lyz-manager-state-invalid = Érvénytelen útvonal vagy fájl
+lyz-manager-state-unreadable = Nem olvasható fájl
+lyz-manager-state-item-missing = Nem elérhető Zotero-elem
+lyz-manager-state-prepared = Félbemaradt frissítés
+lyz-manager-state-committed = Véglegesített frissítés
+lyz-manager-empty = Nincs megfelelő rekord.
+lyz-manager-count = { $first }–{ $last } / { $total } rekord
+lyz-manager-affected-count = Érintett hozzárendelések: { $documents } dokumentum, { $keys } hivatkozási kulcs.
+lyz-manager-relink-doc = Dokumentum újrakapcsolása
+lyz-manager-relink-bib = Bibliográfia újrakapcsolása
+lyz-manager-delete-doc = Dokumentum hozzárendelésének eltávolítása
+lyz-manager-delete-bib = Bibliográfia hozzárendeléseinek eltávolítása
+lyz-manager-removed = A hozzárendelés megszűnik; a fájl megmarad
+lyz-manager-relink-warning = A LyZ-ben tárolt útvonal változik. A LyX-ben megadott bibliográfia-útvonalat külön ellenőrizd; ez a művelet nem szerkeszti a dokumentumot. Az eredeti hozzárendelések megmaradnak.
+lyz-manager-remove-warning = Csak a hozzárendelések szűnnek meg. A bibliográfia eltávolítása a kapcsolt dokumentumok és kulcsok hozzárendeléseit is törli. A fájlok változatlanok, az eredeti rekordok megmaradnak.
+lyz-manager-source-missing = Az eredeti fájl hiányzik, vagy a régi útvonala nem oldható fel. Ellenőrizd, hogy a kiválasztott fájl a kívánt helyettesítő.
+lyz-manager-choose-file = Áthelyezett fájl kiválasztása
+lyz-manager-saved = A hozzárendelés módosítása mentve. Az eredeti rekordokat a Megőrzött rekordok között találod.
+lyz-manager-error-blocked = A hozzárendelések módosítása az adatbázis-ellenőrzés és a félbemaradt frissítés helyreállításának sikeréig tiltva van.
+lyz-manager-error-stale = Az előnézet óta a hozzárendelések vagy a fájlok megváltoztak. Frissítsd a listát, és készíts új előnézetet.
+lyz-manager-error-selection = Először válassz egy dokumentum- vagy bibliográfia-hozzárendelést.
+lyz-manager-error-file = A fájl nem elérhető, vagy nem érvényes LyX/BibTeX-fájl: { $path }
+lyz-manager-error-unchanged = A kiválasztott fájl már ezzel a hozzárendeléssel szerepel.
+lyz-manager-error-occupied = A kiválasztott útvonal már hozzá van rendelve. Az automatikus összevonás nem támogatott: { $path }
+lyz-manager-error-mismatch = A helyettesítő nem egyezik az eredeti fájllal vagy a bibliográfia elem–kulcs hozzárendeléseivel. Válaszd ki a megfelelő áthelyezett fájlt.
+
 ## Menu labels
 
 lyz-menu-label =
@@ -34,6 +107,28 @@ lyz-settings-label =
 
 lyz-test-label =
     .label = LyX parancs…
+
+## Database diagnostics
+
+lyz-diagnostics-label =
+    .label = Adatbázis-diagnosztika exportálása…
+
+lyz-msg-database-title = LyZ adatbázis-ellenőrzés
+
+lyz-msg-database-blocked =
+    A LyZ nem tudta biztonságosan megnyitni vagy migrálni a hozzárendelési adatbázist:
+    { $error }
+    Az adatváltoztatások le vannak tiltva. A beállítások, a LyX-parancsok és az adatbázis-diagnosztika exportálása továbbra is elérhetők.
+    Hibaelhárításhoz exportálj jelentést a LyZ menüjéből. Őrizd meg az eredeti adatbázist és a mentéseket; ne szerkeszd kézzel a lyz.sqlite fájlt.
+
+lyz-msg-diagnostics-title = LyZ adatbázis-diagnosztika exportálása
+
+lyz-msg-diagnostics-saved =
+    A jelentés mentve: { $path }
+    Helyi fájlútvonalakat, Zotero-elem azonosítókat, hivatkozási kulcsokat és helyreállítási rekordokat tartalmaz. Megosztás előtt nézd át.
+    A dokumentumok és bibliográfiák tartalmát nem tartalmazza. Ez a jelentés nem visszaállítható SQLite-mentés.
+
+lyz-msg-diagnostics-failed = Nem sikerült menteni a diagnosztikai jelentést: { $error }
 
 ## Preferences panel
 
@@ -189,6 +284,28 @@ lyz-msg-confirm-update-lyx-docs =
 lyz-msg-confirm-update-lyx-docs-title = LyX dokumentumok frissítése
 
 lyz-msg-key-update-title = LyZ hivatkozási kulcsok frissítése
+
+lyz-msg-recovery-title = LyZ félbemaradt frissítés helyreállítása
+
+lyz-msg-recovery-confirm =
+    Egy félbemaradt frissítés után ezeket a fájlokat kell visszaállítani a korábbi állapotukra:
+    { $files }
+    A folytatás előtt zárja be az összes érintett dokumentumot minden LyX-ablakban.
+    Az OK visszaállítja az ellenőrzött mentéseket. A Mégse a helyreállítás befejezéséig letiltja a LyZ adatmódosításait.
+
+lyz-msg-recovery-complete =
+    A korábbi fájlállapotot visszaállítottuk, az eredeti összerendelések megmaradtak:
+    { $files }
+    Az ellenőrzött mentéseket megőriztük. A dokumentumokat újranyithatja a LyX-ben.
+
+lyz-msg-recovery-blocked =
+    A helyreállítás ennél a fájlnál nem fejezhető be biztonságosan: { $path }
+    { $error }
+    A LyZ adatmódosításai le vannak tiltva. A külső módosításokat nem írjuk felül.
+    Megőrzött mentések vagy a napló azonosítója:
+    { $backups }
+
+lyz-msg-key-update-journal-retained = A frissítés befejeződött, de a helyreállítási naplót nem sikerült törölni. A következő adatmódosítás előtt vagy induláskor a LyZ ellenőrzi a kész fájlokat és összerendeléseket.
 
 lyz-msg-key-update-missing-item = A(z) { $zid } Zotero-tétel nem érhető el. A meglévő hivatkozások védelmében a frissítés megszakadt.
 

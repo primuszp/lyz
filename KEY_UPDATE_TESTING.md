@@ -26,6 +26,12 @@ Covered behavior:
 
 `tests/lyx-server.test.js` uses XPCOM stream fixtures for both transport paths. It covers acknowledged commands, explicit errors, foreign-client responses, UTF-8 command bytes, short writes and command queue serialization.
 
+`tests/key-recovery.test.js` launches a separate Node.js process and terminates it without running rollback or cleanup. A fresh process/connection then checks the persisted files and SQLite state. Exit checkpoints cover journal preparation, incomplete temporary-file staging, each of three file replacements, an uncommitted mapping transaction and the completed SQLite commit. Tests also cover declined recovery, external edits before/during recovery, damaged backups, retry after a failed restore, malformed/unsupported journals, changed mappings, a rejected promise after durable commit, journal-cleanup errors and shared startup initialization.
+
+The database-audit and diagnostic-export regression suite is described in [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md).
+
+Current local evidence (2026-09-27, Windows, Node.js 26): 121 tests passed; add-on JavaScript syntax and XPI integrity/source-content checks passed. Zotero translation, native XPCOM hashing/pipe I/O and LyX UI interactions remain simulated in these fixtures. Mapping-manager coverage is documented in [MAPPING_MANAGER.md](MAPPING_MANAGER.md).
+
 The file writer uses Mozilla's [IOUtils temporary-path write option](https://searchfox.org/mozilla-central/source/dom/chrome-webidl/IOUtils.webidl). The command checks follow the [LyXServer INFO/ERROR protocol](https://wiki.lyx.org/LyX/LyXServer) and use the documented [`buffer-write force` argument](https://raw.githubusercontent.com/cburschka/lyx/master/src/LyXAction.cpp).
 
 ## Pending installed-runtime checks
@@ -41,9 +47,16 @@ Use an isolated Zotero profile or test library, temporary copies of LyX document
 7. Use a read-only copied document or directory. Verify save/close/write failures do not commit new mappings; check recovery messages and retained backups.
 8. Repeat with an already-saved (clean) buffer, Unicode paths and citations from another bibliography.
 9. Check the same lifecycle on Windows, macOS and Linux, including multiple LyX windows on the same process/pipe. Confirm `buffer-close` removes every view of each affected buffer before the file rewrite.
+10. Terminate an isolated Zotero process during a key update and restart it. Close affected LyX documents before accepting the recovery prompt. Verify byte-correct restoration, unchanged old mappings, retained backups and removal of the completed recovery record.
+11. Decline restart recovery. Verify citation insertion, updates and mapping management remain blocked while Settings and LyX Command still work. Retry after closing the documents; check that recovery is offered only once per startup attempt.
+12. Make an external edit to a copied affected document before restarting. Verify recovery preserves that edit and reports its path instead of overwriting it. Keep all recovery artifacts for diagnosis.
 
 ## Recovery boundary
 
-Caught failures before the mapping commit trigger file rollback. A failed rollback leaves old database mappings, reports the incomplete restores, and retains each verified backup under its transaction UUID. Restore the affected bibliography and document files from that UUID's backups as a coherent set after closing them in LyX; keep the backups until the project is checked.
+Before the first file replacement, `key_updates` stores a format-versioned journal with the transaction UUID, old/new mappings, file/backup/staging paths and SHA-256 fingerprints of old/new bytes. The new mappings and the `committed` marker are saved in one SQLite transaction. A journal is retired only after successful commit or verified rollback; backups are retained.
 
-This is a coordinated, recoverable update, not an atomic transaction spanning SQLite and the filesystem. Process termination or power loss between writes and the database commit needs a persistent recovery journal and startup reconciliation in a subsequent change. Native pipe I/O can still block outside the response-polling timeout. Installed-runtime behavior and multiple-window safety remain unverified.
+At startup, a `prepared` record with unchanged files can be retired without writing. Recognized replacements can be restored from verified backups after the user closes all affected LyX documents and confirms. An already `committed` record is retired only if its files and new mappings still match; it is never rolled back merely because a previous connection reported an error. Recovery rechecks the entire set after confirmation and checks each file again before replacing it. It can resume after another failed restore.
+
+Missing or externally edited files, altered mappings, invalid journals and damaged required backups stop recovery and retain the journal and verified artifacts. Further data-changing menu actions are blocked; Settings, LyX Command and Export database diagnostics remain available. A prepared transaction can be retried once its coherent original state or recognized replacements and valid backups are restored. Do not manually delete the journal or edit SQLite mappings to bypass this check. Diagnostic export is described in [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md); a guided repair/import interface is still pending.
+
+The filesystem and SQLite are coordinated through the journal rather than made atomically transactional together. Process termination is covered by the automated fixtures; real device/power-loss durability, native XPCOM operation, installed Zotero/LyX recovery and multiple-window safety remain unverified. Native pipe I/O can still block outside the response-polling timeout.

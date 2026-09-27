@@ -4,6 +4,16 @@ All notable changes to this maintained fork are documented here. Release artifac
 
 ## Unreleased — 5.1.0 development
 
+- Fix native dialog loading by registering chrome resources during startup and using privileged content URLs. Replace the unsupported dynamic skin registration with a content registration for toolbar styles/icons.
+- Add a repeatable installed Zotero smoke test with an isolated profile/library and unchanged source documents; 14 native checks pass on Windows with Zotero 10.0.1.
+
+- Replace separate mapping rename/delete menu entries with a searchable manager for documents, bibliographies, item keys, interrupted updates and preserved records, localized in English, German and Hungarian.
+- Add reviewed relink/remove operations that archive original rows in the same transaction, preserve physical files and reject changed previews, occupied targets or inconsistent bibliography keys. Keep inspection/export available when edits are blocked.
+
+- Version the LyZ database schema and check SQLite integrity, expected columns/indexes and mapping fields before recovery or migrations. Unsafe or newer schemas block data changes while keeping settings, LyX commands and diagnostics available.
+- Adopt unversioned databases in one transaction and preserve displaced duplicate mappings in a migration archive instead of silently losing them during every startup.
+- Add localized database diagnostic JSON export to all LyZ menus, including readable mappings, schema, raw journals, archived rows and partial-read errors. Export does not include document/bibliography contents and protects known source files.
+
 - Reworked Update BibTeX so citation-key changes cover every document associated with the bibliography. Canceling the document rewrite now aborts the entire update.
 - Save and close associated LyX buffers before taking snapshots, and require server acknowledgements. Use `buffer-write:force` for already-saved buffers and verify that a canceled close did not leave a document open.
 - Create unique, byte-verified backups of the bibliography and modified documents, write through temporary files, and commit all citation-key mappings in one SQLite transaction after the files are verified.
@@ -12,6 +22,10 @@ All notable changes to this maintained fork are documented here. Release artifac
 - Validate bibliography headers and exports before writing; import shared identifiers only at commit and abort when a Zotero item is unavailable.
 - Serialize Zotero menu operations and encode LyX commands as UTF-8 for Unicode document paths.
 - Added isolated filesystem/SQLite lifecycle tests and Windows/Unix transport fixtures. Installed Zotero/LyX validation remains pending; see `KEY_UPDATE_TESTING.md`.
+- Added a versioned SQLite recovery journal before file replacement. Its commit marker is saved atomically with new mappings; startup can distinguish incomplete updates from completed commits, including a connection error reported after commit.
+- Verify SHA-256 fingerprints and mapping snapshots before restart recovery. Restore interrupted changes only after the user closes affected LyX documents and confirms recovery; retain external edits, invalid journals and corrupt backups while blocking further LyZ data changes.
+- Make recovery retryable after another interruption, clean abandoned staging files, and share concurrent initialization requests to avoid duplicate database connections or recovery prompts.
+- Added actual child-process termination tests before file replacement, during staging, after each replacement, before SQLite commit and after commit.
 
 ## 5.0.71 — 2026-08-26
 

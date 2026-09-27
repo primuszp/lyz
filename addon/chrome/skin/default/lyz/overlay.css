@@ -8,7 +8,7 @@
 /* ── Toolbar button ─────────────────────────────────────────── */
 
 #lyz-menu-button {
-    list-style-image: url("chrome://lyz/skin/lyz.svg");
+    list-style-image: url("chrome://lyz-skin/content/lyz.svg");
     -moz-context-properties: fill, fill-opacity;
     fill: currentColor;
     fill-opacity: 0.8;

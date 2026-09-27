@@ -8,7 +8,7 @@ The roadmap favors data integrity, observable failures, and reproducible cross-p
 
 Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create verified `.lyz~` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
 
-Development status: the coordinated workflow and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`), and caught failures restore attempted file changes before reopening documents. Installed Zotero/LyX checks, multiple-window validation, and interruption/restart recovery remain pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
+Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. Installed Zotero/LyX checks, multiple-window validation and hardware power-loss behavior remain pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
 
 Success criteria:
 
@@ -19,6 +19,8 @@ Success criteria:
 ### Database schema and recovery audit
 
 Add an explicit schema version, startup integrity checks, and a supported export/diagnostic path so users never need to edit `lyz.sqlite` manually.
+
+Development status: schema version 1, startup SQLite integrity/schema checks and diagnostic JSON export are implemented. A one-time transaction adopts unversioned databases and archives displaced duplicate rows. Unsafe databases block data changes while settings, LyX commands and diagnostics remain available. The `key_updates` table contains format-versioned journals, mapping snapshots, file fingerprints and an atomic commit marker; recovery runs only after the database audit passes. Guided repair/import for ambiguous mappings or corruption and installed-runtime validation remain pending. See [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md).
 
 ## P1 — reliable cross-platform integration
 
@@ -45,6 +47,8 @@ Show whether the configured pipe is live, explain when the parent directory must
 ### Mapping management UI
 
 Replace prompt-driven rename/delete operations with one searchable view of documents, bibliographies, Zotero items, and citation keys. Include export and non-destructive repair actions.
+
+Development status: the searchable manager, missing-file/item states, journal/archive views, diagnostic export, and previewed relink/remove actions are implemented. Manager changes preserve original rows in the same SQLite transaction and reject stale previews or occupied destinations. An isolated installed Zotero 10.0.1 test on Windows passes 14 native checks and caught/fixed resource registration and dialog loading. Archived-record restoration/import, broader corruption repair, manual layout/picker validation and other supported platforms/versions remain pending. See [MAPPING_MANAGER.md](MAPPING_MANAGER.md) and [ZOTERO_MAPPING_RUNTIME_TEST.md](ZOTERO_MAPPING_RUNTIME_TEST.md).
 
 ### Localization quality gate
 

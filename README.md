@@ -6,6 +6,8 @@ Project documents:
 * [Changelog](CHANGELOG.md)
 * [Development and contribution guide](CONTRIBUTING.md)
 * [Roadmap](ROADMAP.md)
+* [Database audit and diagnostic export](DATABASE_RECOVERY.md)
+* [Mapping manager](MAPPING_MANAGER.md)
 * [Zotero 10 runtime test report](ZOTERO10_RUNTIME_TEST.md)
 
 Modernized fork
@@ -26,6 +28,8 @@ Main changes in this fork:
 
 Features
 --------
+* Startup database integrity/schema checks and diagnostic mapping export (unreleased 5.1.0 development).
+* Searchable document/bibliography mapping manager with previewed relinking and preserved original records (unreleased 5.1.0 development).
 * Inserting citations to LyX from Zotero.
 * BibTeX database automatically updated when citation is inserted.
 * BibTeX database can be updated when the references in Zotero are modified.
@@ -102,7 +106,9 @@ The active document determines which BibTeX database is updated. In the 5.1.0 de
 Synchronization between LyX/BibTeX/LyZ
 --------------------------------------
 
-When a Zotero reference changes, the BibTeX database and associated LyX documents can be updated together. This is useful for readable keys such as ‘author year title’, where changing a title or author can change the key. The development workflow preserves existing citations if the required document rewrite is canceled or a Zotero item cannot be resolved. Backups capture the saved document contents, including previously unsaved edits. A successful update reopens all associated documents and selects the originally active document last. A forcibly interrupted process is not covered by automatic rollback yet; keep version-controlled or otherwise backed-up projects.
+When a Zotero reference changes, the BibTeX database and associated LyX documents can be updated together. This is useful for readable keys such as ‘author year title’, where changing a title or author can change the key. The development workflow preserves existing citations if the required document rewrite is canceled or a Zotero item cannot be resolved. Backups capture the saved document contents, including previously unsaved edits. A successful update reopens all associated documents and selects the originally active document last.
+
+If Zotero stops during an update, a persistent recovery record lets the next startup distinguish a completed commit from an unfinished update. Recovery checks file fingerprints, backups and mappings before writing. Close every affected LyX document before confirming restoration. Canceling recovery, encountering external file edits or finding damaged backups blocks further LyZ data changes while retaining the recovery record; Settings and LyX Command remain available. Keep version-controlled or otherwise backed-up projects. Installed-runtime recovery and hardware power-loss behavior still need validation.
 
 Notes on usage
 --------------

@@ -12,15 +12,27 @@ Zotero.Lyz = {
     prefs : null,
     DB : null,
     initialized: false,
+    initializationPromise: null,
     rootURI: null,
     defaultLyXCommand: "server-get-filename",
     wm : null,
     os: null,
+    recoveryRequired: false,
+    databaseBlocked: false,
+    databaseStatus: null,
+    mappingWindow: null,
 
-    init: async function() {
-        if (this.initialized) {
-            return;
+    init: function() {
+        if (this.initialized) return Promise.resolve();
+        if (!this.initializationPromise) {
+            this.initializationPromise = this.initialize().finally(() => {
+                this.initializationPromise = null;
+            });
         }
+        return this.initializationPromise;
+    },
+
+    initialize: async function() {
         await Zotero.Schema.schemaUpdatePromise
 
         //set up preferences
@@ -38,17 +50,81 @@ Zotero.Lyz = {
         var shutdownObserver = {observe: this.shutdown}
         Services.obs.addObserver(shutdownObserver, "quit-application", false);
 
-        await LyZDatabase.init(this);
-        if (this.prefs.getBoolPref('checkZotero5Migration')) {
+        var databaseReady = await LyZDatabase.init(this);
+        if (!databaseReady) this.showDatabaseBlocked();
+        var recovered = databaseReady && await LyZKeyUpdate.recoverPending(this);
+        if (recovered && this.prefs.getBoolPref('checkZotero5Migration')) {
             await this.migrateToZotero5()
         }
         this.initialized = true;
     },
 
-    contentURL: function(fileName) {
-        if (this.rootURI) {
-            return this.rootURI + "chrome/content/lyz/" + fileName;
+    showDatabaseBlocked: function() {
+        this.alert(LyZLocale.getString("lyz-msg-database-blocked", {
+            error: this.databaseStatus?.error || "Unknown database error"
+        }), LyZLocale.getString("lyz-msg-database-title"));
+    },
+
+    assertDatabaseReady: function() {
+        if (this.databaseBlocked) throw new Error("LyZ database changes are blocked: " + this.databaseStatus?.error);
+    },
+
+    mappingManager: function() {
+        if (this.mappingWindow && !this.mappingWindow.closed) {
+            this.mappingWindow.focus();
+            return;
         }
+        var api = {
+            localize: (id, args) => LyZLocale.getString(id, args),
+            inventory: () => LyZBootstrap.runCommand("mappingInventory"),
+            preview: request => LyZBootstrap.runCommand("previewMappingChange", request),
+            apply: id => LyZBootstrap.runCommand("applyMappingChange", id),
+            discard: id => LyZMappings.discard(id),
+            chooseFile: async (kind, window) => this.dialog_FilePickerOpen(window,
+                LyZLocale.getString("lyz-manager-choose-file"), kind === "docs" ? "LyX" : "BibTeX", kind === "docs" ? "*.lyx" : "*.bib"),
+            export: () => LyZBootstrap.runCommand("databaseDiagnostics")
+        };
+        this.mappingWindow = this.wm.getMostRecentWindow("navigator:browser").openDialog(
+            this.contentURL("mapping-manager.xhtml"), "lyz-mapping-manager", "chrome,centerscreen,resizable,width=1120,height=760", api);
+    },
+
+    mappingInventory: function() {
+        return LyZMappings.inventory(this);
+    },
+
+    previewMappingChange: function(request) {
+        return LyZMappings.preview(this, request);
+    },
+
+    applyMappingChange: function(id) {
+        return LyZMappings.apply(this, id);
+    },
+
+    databaseDiagnostics: async function() {
+        var [legacy, picker] = await this.getFilePicker();
+        var title = LyZLocale.getString("lyz-msg-diagnostics-title");
+        picker.init(this.wm.getMostRecentWindow("navigator:browser"), title, picker.modeSave);
+        picker.defaultString = "lyz-diagnostics.json";
+        picker.defaultExtension = "json";
+        picker.appendFilter("JSON", "*.json");
+        var result = await picker.show();
+        if (result !== picker.returnOK && result !== picker.returnReplace) return false;
+        var path = legacy ? picker.file.path : picker.file;
+        try {
+            var report = await LyZDiagnostics.collect(this);
+            await LyZDiagnostics.exportReport(this, path, report);
+            this.alert(LyZLocale.getString("lyz-msg-diagnostics-saved", { path }), title);
+            return true;
+        } catch (error) {
+            Zotero.logError(error);
+            this.alert(LyZLocale.getString("lyz-msg-diagnostics-failed", { error: String(error) }), title);
+            return false;
+        }
+    },
+
+    contentURL: function(fileName) {
+        // Native dialogs need the registered chrome principal. A direct jar/file
+        // URL can leave openDialog at about:blank instead of loading the XHTML.
         return "chrome://lyz/content/" + fileName;
     },
 
@@ -147,6 +223,7 @@ Zotero.Lyz = {
     },
 
     writeBib : function(bib, entries_text, zids, options = {}) {
+        this.assertDatabaseReady();
         var win = this.wm.getMostRecentWindow("navigator:browser");
         if (!options.replace) {//will append to the file
             var bib_backup = this.fileBackup(bib);
@@ -465,6 +542,7 @@ Zotero.Lyz = {
     }),
 
     rebuildBibtexFromDatabase: async function(bib) {
+        this.assertDatabaseReady();
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var ids_h = await LyZDatabase.getKeysForBib(this, bib);
         var ids = [];
@@ -500,6 +578,7 @@ Zotero.Lyz = {
     },
 
     checkAndCite: async function() {
+        this.assertDatabaseReady();
         // export citation to Bibtex
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var zitems = win.ZoteroPane.getSelectedItems();
@@ -615,6 +694,8 @@ Zotero.Lyz = {
     },
 
     updateBibtexAll: async function() {
+        this.assertDatabaseReady();
+        if (this.recoveryRequired && !await LyZKeyUpdate.recoverPending(this)) return false;
         var res = await this.checkDocInDB();
         if (!res) return false;
         var doc = res[1];
@@ -685,6 +766,10 @@ Zotero.Lyz = {
             Zotero.logError(error);
             return false;
         }
+        if (result.recoveryWarning) {
+            this.alert(LyZLocale.getString("lyz-msg-key-update-journal-retained"),
+                LyZLocale.getString("lyz-msg-recovery-title"));
+        }
         if (result.reopenErrors.length) {
             this.alert(LyZLocale.getString("lyz-msg-key-update-reopen-failed", {
                 error: result.reopenErrors.join("\n")
@@ -734,6 +819,7 @@ Zotero.Lyz = {
     }),
 
     dbDeleteBib: Zotero.Promise.coroutine(function*() {
+        this.assertDatabaseReady();
         var dic = yield LyZDatabase.listBibs(this);
         var bib = this.selectRecord(dic, "bib", LyZLocale.getString("lyz-msg-confirm-delete-bib-title"));
         if (!bib) {
@@ -747,6 +833,7 @@ Zotero.Lyz = {
     }),
 
     dbDeleteDoc: Zotero.Promise.coroutine(function*(doc, bib) {
+        this.assertDatabaseReady();
         var dic = yield LyZDatabase.listDocuments(this);
         doc = this.selectRecord(dic, "doc", LyZLocale.getAttribute("lyz-delete-doc-label", "label"));
         if (!doc) {
@@ -761,6 +848,7 @@ Zotero.Lyz = {
     }),
 
     dbRenameDoc: async function() {
+        this.assertDatabaseReady();
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = await LyZDatabase.listDocumentRecords(this);
         var doc = this.selectRecord(dic, "doc", LyZLocale.getAttribute("lyz-rename-doc-label", "label"));
@@ -776,6 +864,7 @@ Zotero.Lyz = {
     },
 
     dbRenameBib: async function() {
+        this.assertDatabaseReady();
         var win = this.wm.getMostRecentWindow("navigator:browser");
         var dic = await LyZDatabase.listBibs(this);
         var bib = this.selectRecord(dic, "bib", LyZLocale.getAttribute("lyz-rename-bib-label", "label"));
@@ -789,11 +878,14 @@ Zotero.Lyz = {
     },
 
     shutdown: Zotero.Promise.coroutine(function*() {
+        if (Zotero.Lyz.mappingWindow && !Zotero.Lyz.mappingWindow.closed) Zotero.Lyz.mappingWindow.close();
+        LyZMappings.plans.clear();
         yield LyZDatabase.close(Zotero.Lyz);
         Zotero.Lyz.initialized = false
     }),
 
     migrateToZotero5: Zotero.Promise.coroutine(function*(context) {
+        this.assertDatabaseReady();
         yield Zotero.uiReadyPromise
         if (Zotero.Libraries.userLibraryID === 0) {
             this.prefs.setBoolPref('checkZotero5Migration', false)
