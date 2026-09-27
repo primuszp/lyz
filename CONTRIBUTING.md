@@ -7,6 +7,7 @@ LyZ currently targets Zotero 7-10 and communicates with LyX through LyXServer. C
 The preferred architecture is one canonical implementation for each responsibility:
 
 - `settings-service.js`: preferences, portable paths, and pipe discovery;
+- `file-service.js`: native filesystem path conversion without changing stored paths or LyX commands;
 - `lyx-server.js`: LyXServer transport and response parsing;
 - `bibtex-service.js`: BibTeX text and file helpers;
 - `database-service.js`: SQLite schema and mapping transactions;
@@ -50,6 +51,14 @@ Install `build/lyz.xpi` through **Zotero > Tools > Plugins > Tools for all plugi
 - Test English, German, and Hungarian strings when adding dialogs or settings.
 
 The isolated key-update fixtures and the pending installed-runtime checklist are documented in [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
+
+For the installed Windows lifecycle, run:
+
+```powershell
+python tests/run-zotero-smoke.py --zotero 'C:\Program Files\Zotero\zotero.exe' --lyx 'C:\Program Files\LyX 2.5\bin\LyX.exe' --lyx-userdir-template "$env:APPDATA\LyX2.5"
+```
+
+The optional template copies only generated LyX catalogs and `lyxrc.defaults`; sessions, preferences and documents are excluded. The runner creates an isolated profile/library, LyX user directory, documents and named pipe; it never uses the normal Zotero profile or LyX session. It intentionally terminates its own Zotero process during an update and restarts it for production recovery. Results and logs remain in the printed temporary directory. Only launched processes are stopped on exit, including timeout/error cleanup. Without `--lyx`, the runner checks the installed Zotero mapping manager instead. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) for coverage and limits. Test hooks are added only to the generated temporary XPI.
 
 Schema migration and diagnostic-export behavior are documented in [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md). Include rollback, retained mappings and startup blocking in database-change regression coverage.
 

@@ -23,6 +23,7 @@ var LyZBootstrap = {
         this.registerChrome();
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/locale-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/settings-service.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/file-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/database-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/diagnostics-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/mapping-service.js");

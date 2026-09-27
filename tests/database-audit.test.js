@@ -70,7 +70,7 @@ function fixture(t, options = {}) {
             remove: path => fsp.rm(path, { force: true })
         }
     });
-    for (const file of ["database-service.js", "diagnostics-service.js", "lyz.js"]) {
+    for (const file of ["file-service.js", "database-service.js", "diagnostics-service.js", "lyz.js"]) {
         vm.runInContext(readFileSync(join(root, "addon/chrome/content/lyz", file), "utf8"), context);
     }
     const lyz = context.Zotero.Lyz;

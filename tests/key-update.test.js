@@ -34,6 +34,24 @@ test("canceling document rewrite leaves files and mappings untouched", async t =
     assert.equal(f.events.length, 0);
 });
 
+test("an explicit unavailable-buffer reply opens a closed document before saving and rewriting", async t => {
+    const f = await fixture(t);
+    f.options.closedDocument = f.docs[1];
+    assert.equal(await f.lyz.updateBibtexAll(), true);
+    const switchIndex = f.events.findIndex(event => event[1] === "buffer-switch:" + f.docs[1]);
+    assert.equal(f.events[switchIndex + 1][1], "file-open:" + f.docs[1]);
+    assert.equal(f.events[switchIndex + 3][1], "buffer-write:force");
+});
+
+test("an uncertain buffer-switch transport failure aborts without opening or rewriting files", async t => {
+    const f = await fixture(t);
+    f.options.commandFailure = "buffer-switch:" + f.docs[0];
+    assert.equal(await f.lyz.updateBibtexAll(), false);
+    await f.unchangedFiles();
+    assert.equal(f.events.some(event => event[0] === "lyx" && event[1].startsWith("file-open:")), false);
+    assert.equal(f.events.some(event => event[0] === "backup" || event[0] === "write"), false);
+});
+
 for (const mode of ["exportFailure", "missingItem", "unchanged"]) {
     test(mode + " handles the update without rewriting LyX documents", async t => {
         const f = await fixture(t, { [mode]: true });

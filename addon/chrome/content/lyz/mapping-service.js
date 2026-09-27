@@ -8,14 +8,14 @@ var LyZMappings = {
     },
 
     normalize(path, os) {
-        try { path = PathUtils.normalize(path); } catch (_) { /* Keep stale paths visible. */ }
+        try { path = LyZFiles.normalize(path); } catch (_) { /* Keep stale paths visible. */ }
         return os === "Win" ? path.replace(/\\/g, "/").toLowerCase() : path;
     },
 
     async fileStatus(path) {
-        if (typeof path !== "string" || !path || !PathUtils.isAbsolute(path)) return { state: "invalid" };
+        if (typeof path !== "string" || !path || !LyZFiles.isAbsolute(path)) return { state: "invalid" };
         try {
-            var info = await IOUtils.stat(path);
+            var info = await LyZFiles.stat(path);
             return { state: info.type === "regular" ? "ok" : "invalid" };
         } catch (error) {
             return { state: error.name === "NotFoundError" ? "missing" : "unreadable", error: String(error) };
@@ -78,7 +78,7 @@ var LyZMappings = {
         var status = await this.fileStatus(path);
         if (status.state === "missing") return { path, hash: null };
         if (status.state !== "ok") throw this.error("file", { path });
-        var bytes = await IOUtils.read(path);
+        var bytes = await LyZFiles.read(path);
         return { path, hash: LyZKeyUpdate.fingerprint(bytes), bytes };
     },
 
@@ -98,18 +98,18 @@ var LyZMappings = {
         var files = [];
         var sourceMissing = false;
         if (action.startsWith("relink-")) {
-            if (typeof target !== "string" || !PathUtils.isAbsolute(target)
+            if (typeof target !== "string" || !LyZFiles.isAbsolute(target)
                 || !target.toLowerCase().endsWith(docAction ? ".lyx" : ".bib")) throw this.error("file", { path: target || "" });
             var candidate = await this.fingerprintFile(target);
             if (candidate.hash === null) throw this.error("file", { path: target });
-            target = PathUtils.normalize(target);
+            target = LyZFiles.normalize(target);
             if (docAction && lyz.os === "Win") target = target.replace(/\\/g, "/");
             var normalized = this.normalize(target, lyz.os);
             if (normalized === this.normalize(source, lyz.os)) throw this.error("unchanged");
             var occupied = docAction ? snapshot.docs.map(row => row.doc)
                 : snapshot.docs.map(row => row.bib).concat(snapshot.keys.map(row => row.bib));
             if (occupied.some(path => this.normalize(path, lyz.os) === normalized)) throw this.error("occupied", { path: target });
-            var original = PathUtils.isAbsolute(source) ? await this.fingerprintFile(source) : { path: source, hash: null };
+            var original = LyZFiles.isAbsolute(source) ? await this.fingerprintFile(source) : { path: source, hash: null };
             sourceMissing = original.hash === null;
             if (!sourceMissing && original.hash !== candidate.hash) throw this.error("mismatch");
             if (docAction) {
@@ -126,7 +126,7 @@ var LyZMappings = {
                     throw this.error("mismatch");
                 }
             }
-            files = [original, { path: target, hash: candidate.hash }].filter(file => PathUtils.isAbsolute(file.path))
+            files = [original, { path: target, hash: candidate.hash }].filter(file => LyZFiles.isAbsolute(file.path))
                 .map(file => ({ path: file.path, hash: file.hash }));
         }
         var id = "mapping-" + Services.uuid.generateUUID().toString().replace(/[{}]/g, "");

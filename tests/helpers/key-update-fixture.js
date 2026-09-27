@@ -129,8 +129,12 @@ async function fixture(t, options = {}) {
             async requireCommand(lyz, command) {
                 events.push(["lyx", command]);
                 if (options.commandFailure === command) throw new Error("LyX rejected " + command);
-                if (command.startsWith("file-open:")) {
-                    active = command.slice("file-open:".length);
+                if (command === "buffer-switch:" + options.closedDocument) {
+                    throw new Error("LyX command failed (ERROR:fixture:buffer-switch:Buffer is not open)");
+                }
+                if (command.startsWith("file-open:") || command.startsWith("buffer-switch:")) {
+                    active = command.slice(command.indexOf(":") + 1);
+                    if (active === options.closedDocument) options.closedDocument = null;
                 } else if (command === "server-get-filename") {
                     return active;
                 } else if (command === "buffer-close") {
@@ -142,7 +146,7 @@ async function fixture(t, options = {}) {
             }
         }
     });
-    for (const name of ["database-service.js", "bibtex-service.js", "key-update-service.js", "lyz.js"]) {
+    for (const name of ["file-service.js", "database-service.js", "bibtex-service.js", "key-update-service.js", "lyz.js"]) {
         vm.runInContext(script(name), context);
     }
     const lyz = context.Zotero.Lyz;

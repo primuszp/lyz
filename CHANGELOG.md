@@ -4,6 +4,10 @@ All notable changes to this maintained fork are documented here. Release artifac
 
 ## Unreleased — 5.1.0 development
 
+- Normalize Windows paths returned by LyX at native filesystem boundaries, including backup, recovery, mapping inspection and diagnostic export operations.
+- Select already-open LyX buffers before saving instead of reopening dirty documents, avoiding a native reload confirmation that blocked multi-document updates. Open closed documents only after an explicit server error; abort on uncertain transport failures.
+- Extend the isolated installed smoke runner to real Zotero/LyX citation insertion, BibTeX export, multi-document rewrites, cancellation, partial-write rollback and abrupt process termination/startup recovery. All 31 lifecycle checks pass on Windows with Zotero 10.0.1 and LyX 2.5.3; the local regression suite passes 126 tests.
+
 - Fix native dialog loading by registering chrome resources during startup and using privileged content URLs. Replace the unsupported dynamic skin registration with a content registration for toolbar styles/icons.
 - Add a repeatable installed Zotero smoke test with an isolated profile/library and unchanged source documents; 14 native checks pass on Windows with Zotero 10.0.1.
 
@@ -21,7 +25,7 @@ All notable changes to this maintained fork are documented here. Release artifac
 - Replace complete citation tokens without cascading substitutions, preserving UTF-8, BOMs, line endings and citations from other bibliographies.
 - Validate bibliography headers and exports before writing; import shared identifiers only at commit and abort when a Zotero item is unavailable.
 - Serialize Zotero menu operations and encode LyX commands as UTF-8 for Unicode document paths.
-- Added isolated filesystem/SQLite lifecycle tests and Windows/Unix transport fixtures. Installed Zotero/LyX validation remains pending; see `KEY_UPDATE_TESTING.md`.
+- Added isolated filesystem/SQLite lifecycle tests and Windows/Unix transport fixtures. Installed Windows Zotero/LyX validation now passes; broader platform/window checks remain pending. See `KEY_UPDATE_TESTING.md` and `ZOTERO_LYX_RUNTIME_TEST.md`.
 - Added a versioned SQLite recovery journal before file replacement. Its commit marker is saved atomically with new mappings; startup can distinguish incomplete updates from completed commits, including a connection error reported after commit.
 - Verify SHA-256 fingerprints and mapping snapshots before restart recovery. Restore interrupted changes only after the user closes affected LyX documents and confirms recovery; retain external edits, invalid journals and corrupt backups while blocking further LyZ data changes.
 - Make recovery retryable after another interruption, clean abandoned staging files, and share concurrent initialization requests to avoid duplicate database connections or recovery prompts.

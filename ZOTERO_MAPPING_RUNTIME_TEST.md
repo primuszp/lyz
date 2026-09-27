@@ -30,7 +30,7 @@ The default runs headless; `--windowed` uses native windows hidden at Windows pr
 - unchanged LyX/BibTeX bytes;
 - close and reopen.
 
-The final successful run produced `result.json` in `lyz-zotero-smoke-g66_shjl`. All **121 Node regression tests** also passed after the production fix.
+The latest successful run produced `result.json` in `lyz-zotero-smoke-r47is8mq`, rechecking all 14 cases after the Windows filesystem path fix. All **126 Node regression tests** also passed.
 
 ## Defect found and fixed
 
@@ -40,4 +40,4 @@ Resource registration follows the [Zotero developer documentation](https://www.z
 
 ## Remaining release checks
 
-This is an automated application integration test, not a pixel review or a manual interaction test. Relinking supplies a fixture file choice instead of showing the interactive file picker. Keyboard navigation, picker cancellation, long-path layout, light/dark visual review, other supported Zotero versions and macOS/Linux remain pending. No LyX process or citation-key rewrite is exercised here; their installed-runtime checks remain in `KEY_UPDATE_TESTING.md`.
+This is an automated application integration test, not a pixel review or a manual interaction test. Relinking supplies a fixture file choice instead of showing the interactive file picker. Keyboard navigation, picker cancellation, long-path layout, light/dark visual review, other supported Zotero versions and macOS/Linux remain pending. This mapping test does not exercise LyX or citation-key rewrites; the separate installed Windows lifecycle now passes 31 checks. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).

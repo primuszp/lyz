@@ -8,7 +8,7 @@ The roadmap favors data integrity, observable failures, and reproducible cross-p
 
 Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create verified `.lyz~` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
 
-Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. Installed Zotero/LyX checks, multiple-window validation and hardware power-loss behavior remain pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
+Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. An installed Windows test with Zotero 10.0.1 and LyX 2.5.3 passes 31 checks, including real citation insertion/export, unsaved edits in two associated documents, cancellation, rollback, process termination and startup recovery. It exposed and fixed native Windows path handling and selection of already-open buffers. Other platforms, multiple-window validation, real parent/child include relationships and hardware power-loss behavior remain pending; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
 
 Success criteria:
 
@@ -20,7 +20,7 @@ Success criteria:
 
 Add an explicit schema version, startup integrity checks, and a supported export/diagnostic path so users never need to edit `lyz.sqlite` manually.
 
-Development status: schema version 1, startup SQLite integrity/schema checks and diagnostic JSON export are implemented. A one-time transaction adopts unversioned databases and archives displaced duplicate rows. Unsafe databases block data changes while settings, LyX commands and diagnostics remain available. The `key_updates` table contains format-versioned journals, mapping snapshots, file fingerprints and an atomic commit marker; recovery runs only after the database audit passes. Guided repair/import for ambiguous mappings or corruption and installed-runtime validation remain pending. See [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md).
+Development status: schema version 1, startup SQLite integrity/schema checks and diagnostic JSON export are implemented. A one-time transaction adopts unversioned databases and archives displaced duplicate rows. Unsafe databases block data changes while settings, LyX commands and diagnostics remain available. The `key_updates` table contains format-versioned journals, mapping snapshots, file fingerprints and an atomic commit marker; recovery runs only after the database audit passes. Fresh schema initialization, native mapping transactions and prepared-journal restart recovery are verified in installed Windows Zotero. Guided repair/import, native corruption cases and interactive diagnostic picker checks remain pending. See [DATABASE_RECOVERY.md](DATABASE_RECOVERY.md).
 
 ## P1 — reliable cross-platform integration
 
@@ -37,6 +37,8 @@ Current foundation: response polling has a timeout and client matching. Key upda
 ### Automated installed smoke test
 
 Build a repeatable fixture that opens an isolated LyX document, installs a test Zotero item, inserts a citation, updates the BibTeX entry, and verifies the document and mapping database.
+
+Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements the Windows fixture with a fresh Zotero profile/library, a separate LyX user directory and unique named pipe. It also verifies cancellation, partial-write rollback, abrupt Zotero termination and recovery in a new process. All 31 checks pass; confirmation answers and one write failure are injected by a test-only hook. macOS/Linux adapters, interactive UI review and broader version coverage remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
 
 ## P2 — maintainability and user experience
 
@@ -65,4 +67,4 @@ Current CI already runs the Node.js tests and JavaScript syntax validation; pack
 
 ## Recommended next milestone
 
-Target 5.1.0 around the P0 multi-document transaction and recovery work. It addresses the highest-risk remaining path and creates the test foundation needed for later UI and cross-platform improvements.
+Continue toward 5.1.0 with LyXServer transport hardening: bound native pipe I/O, categorize errors and reject stale responses across the session. The installed Windows lifecycle fixture now provides a baseline for those changes. Complete the remaining platform/window and interactive checks before release.

@@ -1,6 +1,6 @@
 # LyZ database audit and diagnostics
 
-This describes the unreleased 5.1.0 development code. Installed Zotero/LyX validation is still required before release.
+This describes the unreleased 5.1.0 development code. Installed Windows lifecycle checks pass; broader runtime validation is still required before release.
 
 ## Startup checks
 
@@ -40,12 +40,12 @@ Export a report and preserve the original database, any SQLite sidecar files, an
 
 For an interrupted file update, follow [Citation-key update validation](KEY_UPDATE_TESTING.md): close every affected LyX document before accepting restoration. Unknown edits or damaged required backups need investigation; they are preserved rather than overwritten.
 
-File relinking and mapping removal are supported by the manager. Restoration/import of ambiguous archived mappings or repair of physically damaged database files remains pending. Physical database corruption cannot be repaired merely by exporting JSON. Native Zotero database behavior, diagnostics file pickers and recovery dialogs need installed-runtime verification.
+File relinking and mapping removal are supported by the manager. Restoration/import of ambiguous archived mappings or repair of physically damaged database files remains pending. Physical database corruption cannot be repaired merely by exporting JSON. Native initialization, mapping transactions and prepared-journal recovery are verified on Windows; native corruption/migration cases, diagnostic file pickers and interactive recovery dialogs still need review.
 
 ## Validation
 
 `tests/database-audit.test.js` uses real SQLite and Zotero-style storage-row proxies. It covers version adoption, retained duplicate rows, rollback of failed migrations, read-only connections, unknown versions, invalid mappings, integrity failures, invalid indexes/triggers, pending journals, startup blocking, partial diagnostic reads, a real non-SQLite file, Unicode JSON export, safe export destinations, picker cancellation/replacement, all menu routes and English/German/Hungarian message variables.
 
-Together with the existing file-update, recovery, manager and transport suites, the local gate on 2026-09-27 passed **121 tests** on Windows with Node.js 26. JavaScript syntax and XPI archive/source-content checks also passed. SQLite-integrity failure messages are injected in focused tests; the non-SQLite-file case exercises a real driver failure. Native Zotero/LyX interaction remains unverified for this development milestone.
+Together with the existing file-update, recovery, manager and transport suites, the local gate on 2026-09-27 passed **126 tests** on Windows with Node.js 26. JavaScript syntax and XPI archive/source-content checks also passed. SQLite-integrity failure messages are injected in focused tests; the non-SQLite-file case exercises a real driver failure. The installed Windows lifecycle verifies fresh native schema initialization, mapping commits, rollback and prepared-journal recovery after actual Zotero process termination; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
 
 The implementation uses the documented [SQLite integrity check and application version pragmas](https://www.sqlite.org/pragma.html), Zotero's [database connection API](https://raw.githubusercontent.com/zotero/zotero/main/chrome/content/zotero/xpcom/db.js) and [file picker API](https://raw.githubusercontent.com/zotero/zotero/main/chrome/content/zotero/modules/filePicker.mjs).

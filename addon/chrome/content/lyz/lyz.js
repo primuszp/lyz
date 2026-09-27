@@ -714,7 +714,7 @@ Zotero.Lyz = {
         try {
             // The file header is authoritative for shared bibliographies. Import
             // identifiers in memory; do not persist placeholder keys before export.
-            var originalBib = await IOUtils.read(bib);
+            var originalBib = await LyZFiles.read(bib);
             var source = LyZKeyUpdate.parseBibliography(originalBib,
                 await LyZDatabase.getKeysForBib(this, bib));
             var items = [];

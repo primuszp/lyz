@@ -9,6 +9,7 @@ Project documents:
 * [Database audit and diagnostic export](DATABASE_RECOVERY.md)
 * [Mapping manager](MAPPING_MANAGER.md)
 * [Zotero 10 runtime test report](ZOTERO10_RUNTIME_TEST.md)
+* [Installed Windows Zotero–LyX lifecycle test](ZOTERO_LYX_RUNTIME_TEST.md)
 
 Modernized fork
 ---------------
@@ -101,7 +102,7 @@ Menu command “Update BibTex” will update BibTeX database of the active LyX d
 
 When a single BibTeX database is shared among several authors, e.g. using version control system such as SVN and CVS, LyZ database is updated from local working copy of BibTeX database.
 
-The active document determines which BibTeX database is updated. In the 5.1.0 development workflow, changed keys require confirmation to save, close, rewrite and reopen every associated LyX document. Canceling this confirmation aborts the entire update. The bibliography and modified documents receive unique, verified backups named `<file>.lyz-<uuid>.lyz~`. Mappings are committed only after all required file writes succeed; caught failures restore attempted changes and report any incomplete recovery. Installed runtime validation of this workflow is pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
+The active document determines which BibTeX database is updated. In the 5.1.0 development workflow, changed keys require confirmation to save, close, rewrite and reopen every associated LyX document. Canceling this confirmation aborts the entire update. The bibliography and modified documents receive unique, verified backups named `<file>.lyz-<uuid>.lyz~`. Mappings are committed only after all required file writes succeed; caught failures restore attempted changes and report any incomplete recovery. An isolated installed Windows lifecycle passes 31 checks with Zotero 10.0.1 and LyX 2.5.3; other platforms/windows remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
 
 Synchronization between LyX/BibTeX/LyZ
 --------------------------------------

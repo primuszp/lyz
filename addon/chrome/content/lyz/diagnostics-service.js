@@ -88,25 +88,25 @@ var LyZDiagnostics = {
         if (!path.toLowerCase().endsWith(".json")) throw new Error("Diagnostics must be saved to a .json file");
         var normalize = value => {
             var normalized = value;
-            try { normalized = PathUtils.normalize(value); }
+            try { normalized = LyZFiles.normalize(value); }
             catch (_) {
                 // New export files do not exist yet; normalize the existing parent.
-                try { normalized = PathUtils.join(PathUtils.normalize(PathUtils.parent(value)), PathUtils.filename(value)); }
+                try { normalized = PathUtils.join(LyZFiles.normalize(LyZFiles.parent(value)), LyZFiles.filename(value)); }
                 catch (_) { /* Stale mapping paths are still compared as strings. */ }
             }
             if (lyz.os === "Win") normalized = normalized.replace(/\\/g, "/");
             return lyz.os === "Win" ? normalized.toLowerCase() : normalized;
         };
-        if (!PathUtils.isAbsolute(path)) throw new Error("Diagnostics require an absolute output path");
+        if (!LyZFiles.isAbsolute(path)) throw new Error("Diagnostics require an absolute output path");
         var target = normalize(path);
         if (Array.from(this.protectedPaths(report)).some(value => normalize(value) === target)) {
             throw new Error("Diagnostics cannot overwrite a file referenced by LyZ");
         }
         var tmpPath = path + ".lyz-diagnostics-" + Services.uuid.generateUUID().toString().replace(/[{}]/g, "") + ".tmp";
         try {
-            await IOUtils.write(path, new TextEncoder().encode(JSON.stringify(report, null, 2) + "\n"), { tmpPath, flush: true });
+            await LyZFiles.write(path, new TextEncoder().encode(JSON.stringify(report, null, 2) + "\n"), { tmpPath, flush: true });
         } finally {
-            try { await IOUtils.remove(tmpPath, { ignoreAbsent: true }); }
+            try { await LyZFiles.remove(tmpPath, { ignoreAbsent: true }); }
             catch (error) { Zotero.logError(error); }
         }
     }

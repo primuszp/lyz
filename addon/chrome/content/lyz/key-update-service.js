@@ -24,7 +24,7 @@ var LyZKeyUpdate = {
         for (var file of files) {
             if (!file.tmp) continue;
             try {
-                await IOUtils.remove(file.tmp, { ignoreAbsent: true });
+                await LyZFiles.remove(file.tmp, { ignoreAbsent: true });
             } catch (cleanupError) {
                 Zotero.logError(cleanupError);
             }
@@ -70,12 +70,12 @@ var LyZKeyUpdate = {
             // Preflight the entire set before asking or restoring any file.
             for (var file of journal.files) {
                 path = file.path;
-                var current = this.fingerprint(await IOUtils.read(path));
+                var current = this.fingerprint(await LyZFiles.read(path));
                 if (row.state === "committed") {
                     if (current !== file.nextHash) throw new Error("Committed file changed or is incomplete");
                 } else if (current !== file.originalHash) {
                     if (current !== file.nextHash) throw new Error("File contains an external or unrecognized edit");
-                    if (this.fingerprint(await IOUtils.read(file.backup)) !== file.originalHash) {
+                    if (this.fingerprint(await LyZFiles.read(file.backup)) !== file.originalHash) {
                         throw new Error("Recovery backup verification failed");
                     }
                     changed.push(file);
@@ -89,22 +89,22 @@ var LyZKeyUpdate = {
                 for (var file of journal.files) {
                     path = file.path;
                     var expected = changed.includes(file) ? file.nextHash : file.originalHash;
-                    if (this.fingerprint(await IOUtils.read(path)) !== expected) {
+                    if (this.fingerprint(await LyZFiles.read(path)) !== expected) {
                         throw new Error("File changed while waiting for recovery confirmation");
                     }
                 }
                 for (var file of changed.slice().reverse()) {
                     path = file.path;
-                    var backup = await IOUtils.read(file.backup);
+                    var backup = await LyZFiles.read(file.backup);
                     if (this.fingerprint(backup) !== file.originalHash) {
                         throw new Error("Recovery backup changed before restore");
                     }
                     // Never overwrite an intervening edit, even during recovery.
-                    if (this.fingerprint(await IOUtils.read(path)) !== file.nextHash) {
+                    if (this.fingerprint(await LyZFiles.read(path)) !== file.nextHash) {
                         throw new Error("File changed before restore");
                     }
-                    await IOUtils.write(path, backup, { tmpPath: file.tmp, flush: true });
-                    if (this.fingerprint(await IOUtils.read(path)) !== file.originalHash) {
+                    await LyZFiles.write(path, backup, { tmpPath: file.tmp, flush: true });
+                    if (this.fingerprint(await LyZFiles.read(path)) !== file.originalHash) {
                         throw new Error("Recovery restore verification failed");
                     }
                 }
@@ -113,7 +113,7 @@ var LyZKeyUpdate = {
             for (var file of journal.files) {
                 path = file.path;
                 var expected = row.state === "committed" ? file.nextHash : file.originalHash;
-                if (this.fingerprint(await IOUtils.read(path)) !== expected) {
+                if (this.fingerprint(await LyZFiles.read(path)) !== expected) {
                     throw new Error("File changed before recovery completed");
                 }
             }
@@ -257,15 +257,22 @@ var LyZKeyUpdate = {
             }
             for (var doc of paths) {
                 path = doc;
-                this.rewriteDocument(await IOUtils.read(doc), plan.oldkeys, plan.newkeys);
+                this.rewriteDocument(await LyZFiles.read(doc), plan.oldkeys, plan.newkeys);
             }
             if (plan.rewriteDocuments) {
                 stage = "lyx";
-                // file-open selects an existing buffer too, so unsaved edits are saved
-                // before snapshots are taken. Never rewrite a live buffer on disk.
+                // Switch to an existing buffer without reloading its unsaved edits.
+                // Only open from disk when the buffer is not already available.
                 for (var doc of paths) {
                     path = doc;
-                    await LyZServer.requireCommand(lyz, "file-open:" + doc);
+                    try {
+                        await LyZServer.requireCommand(lyz, "buffer-switch:" + doc);
+                    } catch (switchError) {
+                        // A transport failure leaves selection uncertain; do not
+                        // turn it into another file-open request.
+                        if (!String(switchError).includes("ERROR:")) throw switchError;
+                        await LyZServer.requireCommand(lyz, "file-open:" + doc);
+                    }
                     var active = await LyZServer.requireCommand(lyz, "server-get-filename");
                     if (this.normalizePath(active, lyz.os) !== this.normalizePath(doc, lyz.os)) {
                         throw new Error("LyX selected a different document");
@@ -282,14 +289,14 @@ var LyZKeyUpdate = {
             }
             stage = "read";
             path = plan.bib;
-            var originalBib = await IOUtils.read(path);
+            var originalBib = await LyZFiles.read(path);
             if (!this.equalBytes(originalBib, plan.originalBib)) {
                 throw new Error("Bibliography changed while preparing the update");
             }
             files.push({ path, original: originalBib, next: plan.bibBytes });
             for (var doc of paths) {
                 path = doc;
-                var original = await IOUtils.read(doc);
+                var original = await LyZFiles.read(doc);
                 var next = this.rewriteDocument(original, plan.oldkeys, plan.newkeys);
                 if (!this.equalBytes(original, next)) {
                     files.push({ path, original, next });
@@ -300,8 +307,8 @@ var LyZKeyUpdate = {
                 path = file.path;
                 file.backup = file.path + "." + token + ".lyz~";
                 file.tmp = file.path + "." + token + ".tmp";
-                await IOUtils.copy(file.path, file.backup, { noOverwrite: true });
-                if (!this.equalBytes(await IOUtils.read(file.backup), file.original)) {
+                await LyZFiles.copy(file.path, file.backup, { noOverwrite: true });
+                if (!this.equalBytes(await LyZFiles.read(file.backup), file.original)) {
                     throw new Error("Backup verification failed");
                 }
                 file.backupVerified = true;
@@ -319,20 +326,20 @@ var LyZKeyUpdate = {
             stage = "write";
             for (var file of files) {
                 path = file.path;
-                if (!this.equalBytes(await IOUtils.read(file.path), file.original)) {
+                if (!this.equalBytes(await LyZFiles.read(file.path), file.original)) {
                     throw new Error("File changed after its backup was created");
                 }
                 // Include a write attempt in rollback even when IOUtils rejects.
                 file.attempted = true;
-                await IOUtils.write(file.path, file.next, { tmpPath: file.tmp, flush: true });
-                if (!this.equalBytes(await IOUtils.read(file.path), file.next)) {
+                await LyZFiles.write(file.path, file.next, { tmpPath: file.tmp, flush: true });
+                if (!this.equalBytes(await LyZFiles.read(file.path), file.next)) {
                     throw new Error("File write verification failed");
                 }
             }
             stage = "database";
             for (var file of files) {
                 path = file.path;
-                if (!this.equalBytes(await IOUtils.read(path), file.next)) {
+                if (!this.equalBytes(await LyZFiles.read(path), file.next)) {
                     throw new Error("File changed before the mapping commit");
                 }
             }
@@ -375,17 +382,17 @@ var LyZKeyUpdate = {
             if (canRollback) for (var file of files.slice().reverse()) {
                 if (!file.attempted) continue;
                 try {
-                    var current = await IOUtils.read(file.path);
+                    var current = await LyZFiles.read(file.path);
                     if (this.equalBytes(current, file.original)) continue;
                     if (!this.equalBytes(current, file.next)) {
                         throw new Error("External or unrecognized edit; refusing to overwrite it");
                     }
-                    var backup = await IOUtils.read(file.backup);
+                    var backup = await LyZFiles.read(file.backup);
                     if (!this.equalBytes(backup, file.original)) {
                         throw new Error("Backup changed; refusing to restore it");
                     }
-                    await IOUtils.write(file.path, backup, { tmpPath: file.tmp, flush: true });
-                    if (!this.equalBytes(await IOUtils.read(file.path), file.original)) {
+                    await LyZFiles.write(file.path, backup, { tmpPath: file.tmp, flush: true });
+                    if (!this.equalBytes(await LyZFiles.read(file.path), file.original)) {
                         throw new Error("Restore verification failed");
                     }
                 } catch (rollbackError) {

@@ -47,7 +47,7 @@ Preserved records can be inspected and exported. This first manager version does
 
 `tests/mapping-manager-ui.test.js` runs the production controller through a DOM adapter and checks accent-insensitive search, problem filtering, row/tab selection, keyboard focus, pagination, preview acknowledgment, cancellation, read-only export, stale-preview errors and safe text rendering. It does not emulate Gecko layout or Zotero window/file-picker behavior.
 
-Local gate on 2026-09-27 (Windows, Node.js 26): **121 tests passed**, JavaScript syntax checks passed, XHTML parsed successfully, and XPI archive/source-content verification passed.
+Local gate on 2026-09-27 (Windows, Node.js 26): **126 tests passed**, JavaScript syntax checks passed, XHTML parsed successfully, and XPI archive/source-content verification passed.
 
 For manual browser layout checks, run `node tests/mapping-preview-server.js` and open `http://127.0.0.1:8765/mapping-manager.xhtml`; append `?readonly=1` for the locked view. This fixture uses synthetic Hungarian data and never opens Zotero, SQLite or user documents. The Codex in-app browser blocked this local URL in this session, so visual/browser interaction validation is still pending.
 
