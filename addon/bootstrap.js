@@ -14,6 +14,7 @@ var LyZBootstrap = {
     menuIDs: [],
     preferencePaneID: null,
     windows: new Set(),
+    commandQueue: Promise.resolve(),
 
     async init(rootURI) {
         this.rootURI = rootURI;
@@ -25,6 +26,7 @@ var LyZBootstrap = {
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bibtex-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/bootstrap-ui.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/lyx-server.js");
+        Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/key-update-service.js");
         Services.scriptloader.loadSubScript(rootURI + "chrome/content/lyz/lyz.js");
         Zotero.Lyz.rootURI = rootURI;
         this.debug("lyz.js loaded");
@@ -247,7 +249,7 @@ var LyZBootstrap = {
     },
 
     runCommand(command) {
-        return this.ensureLyzInitialized()
+        var operation = this.commandQueue.then(() => this.ensureLyzInitialized())
             .then(() => Zotero.Lyz[command]())
             .catch(e => {
                 const win = Services.wm.getMostRecentWindow("navigator:browser");
@@ -257,6 +259,10 @@ var LyZBootstrap = {
                 }
                 throw e;
             });
+        // Keep file and mapping operations from overlapping, including while
+        // dialogs or asynchronous exports yield to another menu invocation.
+        this.commandQueue = operation.catch(() => {});
+        return operation;
     },
 
     runCommandSync(command) {

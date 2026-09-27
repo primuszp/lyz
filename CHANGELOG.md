@@ -2,6 +2,17 @@
 
 All notable changes to this maintained fork are documented here. Release artifacts are available from <https://github.com/primuszp/lyz/releases>.
 
+## Unreleased — 5.1.0 development
+
+- Reworked Update BibTeX so citation-key changes cover every document associated with the bibliography. Canceling the document rewrite now aborts the entire update.
+- Save and close associated LyX buffers before taking snapshots, and require server acknowledgements. Use `buffer-write:force` for already-saved buffers and verify that a canceled close did not leave a document open.
+- Create unique, byte-verified backups of the bibliography and modified documents, write through temporary files, and commit all citation-key mappings in one SQLite transaction after the files are verified.
+- Restore attempted file changes after a caught write or database failure. Report failed restores with the affected paths and retained backups; reopening failures after a successful commit are reported separately.
+- Replace complete citation tokens without cascading substitutions, preserving UTF-8, BOMs, line endings and citations from other bibliographies.
+- Validate bibliography headers and exports before writing; import shared identifiers only at commit and abort when a Zotero item is unavailable.
+- Serialize Zotero menu operations and encode LyX commands as UTF-8 for Unicode document paths.
+- Added isolated filesystem/SQLite lifecycle tests and Windows/Unix transport fixtures. Installed Zotero/LyX validation remains pending; see `KEY_UPDATE_TESTING.md`.
+
 ## 5.0.71 — 2026-08-26
 
 - Added Zotero 10 compatibility while retaining Zotero 7-9 support.

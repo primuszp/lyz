@@ -146,93 +146,6 @@ Zotero.Lyz = {
         return biblio.text;
     },
 
-    syncBibtexKeyFormat : function(doc, oldkeys, newkeys) {
-        var cstream, outstream, re, lyxfile, oldpath, tmpfile;
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        lyxfile = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsIFile);
-        // LyX returns linux style paths, which don't work on Windows
-        oldpath = doc;
-        try {
-            lyxfile.initWithPath(doc);
-        } catch (e) {
-            doc = doc.replace(/\//g, "\\");
-            lyxfile.initWithPath(doc);
-        }
-        if (!lyxfile.exists()) {
-            win.alert(LyZLocale.getString("lyz-msg-file-not-exist", { doc }));
-            return;
-        }
-        //remove old backup file
-        try {
-            tmpfile = Components.classes["@mozilla.org/file/local;1"]
-                    .createInstance(Components.interfaces.nsIFile);
-            tmpfile.initWithPath(doc + ".lyz~");
-            if (tmpfile.exists()) {
-                tmpfile.remove(1);
-            }
-        } catch (e) {
-            win.alert(LyZLocale.getString("lyz-msg-report-error", { error: String(e) }));
-            return;
-        }
-        // make new backup
-        lyxfile.copyTo(null, lyxfile.leafName + ".lyz~");
-        // that main procedure
-        win.alert(LyZLocale.getString("lyz-msg-updating-doc", { doc }));
-        try {
-            cstream = this.fileReadByLine(doc + ".lyz~");
-            outstream = this.fileWrite(doc)[1];
-            var line = {}, lines = [], hasmore;
-            re = /key\s\"([^\"].*)\"/;
-            do {
-                hasmore = cstream.readLine(line);
-                var tmp = line.value;
-                if (tmp.search('key') === 0) {
-                    var tmpkeys = re.exec(tmp)[1].split(',');
-                    for ( var i = 0; i < tmpkeys.length; i++) {
-                        var o = tmpkeys[i];
-                        var n = newkeys[oldkeys[tmpkeys[i]]];
-                        // user can have citations from alternative bibtex file
-                        // ignore those
-                        if (n !== undefined)
-                            tmp = tmp.replace(o, n);
-                    }
-                }
-                outstream.writeString(tmp + "\n");
-            } while (hasmore);
-
-            outstream.close();
-            outstream = null;
-            cstream.close();
-            cstream = null;
-        } catch (e) {
-            if (outstream) {
-                try {
-                    outstream.close();
-                } catch (closeError) {
-                    Zotero.logError(closeError);
-                }
-            }
-            if (cstream) {
-                try {
-                    cstream.close();
-                } catch (closeError) {
-                    Zotero.logError(closeError);
-                }
-            }
-            win.alert(LyZLocale.getString("lyz-msg-report-error", { error: String(e) }));
-            var oldfile = Components.classes["@mozilla.org/file/local;1"]
-                    .createInstance(Components.interfaces.nsIFile);
-            oldfile.initWithPath(doc);
-            if (oldfile.exists()) {
-                oldfile.remove(1);
-            }
-            // make new backup
-            tmpfile.copyTo(null, lyxfile.leafName);
-
-        }
-    },
-
     writeBib : function(bib, entries_text, zids, options = {}) {
         var win = this.wm.getMostRecentWindow("navigator:browser");
         if (!options.replace) {//will append to the file
@@ -668,7 +581,7 @@ Zotero.Lyz = {
                 if (ask) {
                     // FIXME: started to act weird
                     var xy = await this.lyxGetPos();
-                    await this.updateBibtexAll();
+                    if (!await this.updateBibtexAll()) return;
                     if (this.os == "Win"){
                         await this.lyxAskServer("server-set-xy:" + xy);
                     } else {
@@ -701,96 +614,84 @@ Zotero.Lyz = {
         }
     },
 
-    updateBibtexAll: Zotero.Promise.coroutine(function*() {
-        //first update from the bibtex file
-        
-        yield this.updateFromBibtexFile();
-        // update when zotero items are modified
-        var win = this.wm.getMostRecentWindow("navigator:browser");
-        var res = yield this.checkDocInDB();
-        if (!res) {
-            return;
-        }
+    updateBibtexAll: async function() {
+        var res = await this.checkDocInDB();
+        if (!res) return false;
         var doc = res[1];
         var bib = res[0];
         if (!bib) {
-            win.alert(LyZLocale.getString("lyz-msg-no-bibtex-for-doc", { doc }));
-            return;
+            this.alert(LyZLocale.getString("lyz-msg-no-bibtex-for-doc", { doc }));
+            return false;
         }
         var citekey = this.prefs.getCharPref("citekey");
-
-        
-        var p = this.confirm(
+        if (!this.confirm(
             LyZLocale.getString("lyz-msg-confirm-update-bibtex", { bib, citekey }),
             LyZLocale.getString("lyz-msg-confirm-update-bibtex-title")
-        );
-        if (p) {
-            // get all ids for the bibtex file
-            var ids_h = yield LyZDatabase.getKeysForBib(this, bib);
-            var ids = [];
-            var zids = [];
-            var oldkeys = Object.create(null);
-            var zid;
-            for ( var i = 0; i < ids_h.length; i++) {
-                zid = ids_h[i].zid;
+        )) return false;
+
+        var result;
+        try {
+            // The file header is authoritative for shared bibliographies. Import
+            // identifiers in memory; do not persist placeholder keys before export.
+            var originalBib = await IOUtils.read(bib);
+            var source = LyZKeyUpdate.parseBibliography(originalBib,
+                await LyZDatabase.getKeysForBib(this, bib));
+            var items = [];
+            for (var zid of source.zids) {
                 var item = this.getZoteroItem(zid);
                 if (!item) {
-                    Zotero.debug("LyZ skipped stale database key during update: " + zid);
-                    continue;
+                    throw new Error(LyZLocale.getString("lyz-msg-key-update-missing-item", { zid }));
                 }
-                ids.push(item);
-                zids.push(zid);
-                oldkeys[ids_h[i].key] = zid;
+                items.push(item);
             }
-            if (!ids.length) {
-                win.alert(LyZLocale.getString("lyz-msg-no-valid-items"));
-                return;
+            if (!items.length) {
+                this.alert(LyZLocale.getString("lyz-msg-no-valid-items"));
+                return false;
             }
-
-            var ex = yield this.exportToBibtex(ids, bib, zids);
-            zids = [];
+            var exported = await this.exportToBibtex(items, bib, source.zids);
             var newkeys = Object.create(null);
-            var text = "";
-            for ( var id in ex) {
-                text += ex[id][1];
-                zids.push(id);
-                newkeys[id] = ex[id][0];
+            var entries = "";
+            for (var zid of source.zids) {
+                var entry = exported[zid];
+                if (!entry || !entry[0] || !entry[1] || /[,"\\\s]/.test(entry[0])
+                        || LyZBibTeX.extractBibTeXKey(entry[1]) !== entry[0]) {
+                    throw new Error("Incomplete BibTeX export for " + zid);
+                }
+                newkeys[zid] = entry[0];
+                entries += entry[1] + (entry[1].endsWith("\n") ? "" : "\n");
             }
-            var oldKeyCount = Object.keys(oldkeys).length;
-            var newKeyCount = Object.keys(newkeys).length;
-            if (oldKeyCount !== newKeyCount) {
-                win.alert(LyZLocale.getString("lyz-msg-aborting"));
-                return;
+            if (new Set(Object.values(newkeys)).size !== source.zids.length) {
+                throw new Error("Duplicate citation keys in BibTeX export");
             }
-            // Write the bibliography before committing its new keys to the mapping database.
-            this.writeBib(bib, text, zids, { replace: true });
-            for ( zid in newkeys) {
-                yield LyZDatabase.updateKey(this, newkeys[zid], zid, bib);
-            }
-            res = this.confirm(
+            var changed = Object.keys(source.oldkeys).some(key => newkeys[source.oldkeys[key]] !== key);
+            if (changed && !this.confirm(
                 LyZLocale.getString("lyz-msg-confirm-update-lyx-docs", { bib }),
                 LyZLocale.getString("lyz-msg-confirm-update-lyx-docs-title")
-            );
-            if (!res)
-                return;
-            
-            if (this.os == "Win"){
-                yield this.lyxAskServer("buffer-write");
-                yield this.lyxAskServer("buffer-close");
-            } else {
-                yield this._lyxAskServer("buffer-write");
-                yield this._lyxAskServer("buffer-close");
-            }
-            
-            this.syncBibtexKeyFormat(doc, oldkeys, newkeys);
-            if (this.os == "Win"){
-                yield this.lyxAskServer("file-open:" + doc);
-            } else {
-                yield this._lyxAskServer("file-open:" + doc);
-            }
-            
+            )) return false;
+            result = await LyZKeyUpdate.run(this, {
+                bib, doc, originalBib, oldkeys: source.oldkeys, newkeys,
+                bibBytes: new TextEncoder().encode("\uFEFF" + source.zids.join(" ") + "\n" + entries),
+                rewriteDocuments: changed
+            });
+        } catch (error) {
+            var recovery = (error.rollbackErrors || []).concat(error.reopenErrors || []);
+            this.alert(LyZLocale.getString("lyz-msg-key-update-failed", {
+                path: error.path || bib,
+                error: String(error),
+                recovery: recovery.length ? recovery.join("\n")
+                    : LyZLocale.getString("lyz-msg-key-update-rolled-back"),
+                backups: (error.backups || []).join("\n")
+            }), LyZLocale.getString("lyz-msg-key-update-title"));
+            Zotero.logError(error);
+            return false;
         }
-    }),
+        if (result.reopenErrors.length) {
+            this.alert(LyZLocale.getString("lyz-msg-key-update-reopen-failed", {
+                error: result.reopenErrors.join("\n")
+            }), LyZLocale.getString("lyz-msg-key-update-title"));
+        }
+        return true;
+    },
 
     updateFromBibtexFile: Zotero.Promise.coroutine(function*() {
         var win = this.wm.getMostRecentWindow("navigator:browser");

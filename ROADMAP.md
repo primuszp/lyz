@@ -6,7 +6,9 @@ The roadmap favors data integrity, observable failures, and reproducible cross-p
 
 ### Transactional multi-document key rewrite
 
-Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create `.lyz` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
+Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create verified `.lyz~` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
+
+Development status: the coordinated workflow and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`), and caught failures restore attempted file changes before reopening documents. Installed Zotero/LyX checks, multiple-window validation, and interruption/restart recovery remain pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
 
 Success criteria:
 
@@ -27,6 +29,8 @@ Exercise current Zotero with supported LyX versions on macOS, Windows, and Linux
 ### LyXServer transport hardening
 
 Add bounded timeouts, structured error categories, stale-response rejection, and diagnostic logging that records the resolved pipe path, command, client identifier, and response state without exposing bibliography content.
+
+Current foundation: response polling has a timeout and client matching. Key updates also require INFO acknowledgements, reject ERROR responses, and encode Unicode commands as UTF-8. A hard timeout around native pipe I/O, session-wide stale-response protection, and structured diagnostics still need work.
 
 ### Automated installed smoke test
 
@@ -52,6 +56,8 @@ Check that every Fluent key exists in English, German, and Hungarian, and add au
 - Investigate selection of a specific LyX window when several documents are open.
 - Add opt-in project portability for mapping transfer between computers while preserving Zotero library identifiers.
 - Explore continuous integration for packaging, metadata validation, and draft release artifacts.
+
+Current CI already runs the Node.js tests and JavaScript syntax validation; packaging and release-artifact automation remain future work.
 
 ## Recommended next milestone
 

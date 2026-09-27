@@ -181,12 +181,29 @@ lyz-msg-no-valid-items =
 lyz-msg-aborting = Abbruch
 
 lyz-msg-confirm-update-lyx-docs =
-    Ihre BibTeX-Datenbank { $bib } wurde aktualisiert.
-    Möchten Sie auch die zugehörigen LyX-Dokumente aktualisieren?
-    Dies ist nur erforderlich, wenn Autor, Titel oder Jahr geändert wurde,
-    oder das BibTeX-Schlüsselformat geändert wurde.
+    Zitationsschlüssel in { $bib } werden geändert.
+    Alle zugehörigen LyX-Dokumente speichern, schließen, aktualisieren und erneut öffnen?
+    Geprüfte Sicherungskopien bleiben neben den Dateien erhalten.
+    Abbrechen beendet die gesamte Aktualisierung ohne Änderungen an Bibliographie oder Zuordnungen.
 
 lyz-msg-confirm-update-lyx-docs-title = LyX-Dokumente aktualisieren
+
+lyz-msg-key-update-title = LyZ-Zitationsschlüssel aktualisieren
+
+lyz-msg-key-update-missing-item = Zotero-Eintrag { $zid } ist nicht verfügbar. Die Aktualisierung wurde zum Schutz bestehender Zitate abgebrochen.
+
+lyz-msg-key-update-rolled-back = Keine neuen Zuordnungen wurden gespeichert. Dateiänderungen dieser Aktualisierung wurden zurückgesetzt.
+
+lyz-msg-key-update-failed =
+    Aktualisierung fehlgeschlagen für: { $path }
+    { $error }
+    { $recovery }
+    Beibehaltene Sicherungskopien:
+    { $backups }
+
+lyz-msg-key-update-reopen-failed =
+    Dateien und Zuordnungen wurden aktualisiert, aber LyX konnte diese Dokumente nicht erneut öffnen. Öffnen Sie sie manuell:
+    { $error }
 
 lyz-msg-items-changed = { $count } Eintrag/Einträge geändert oder hinzugefügt.
 

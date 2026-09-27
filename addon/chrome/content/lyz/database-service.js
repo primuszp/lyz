@@ -63,6 +63,19 @@ var LyZDatabase = {
         return lyz.DB.queryAsync("SELECT zid,key FROM keys WHERE bib=?", [bib]);
     },
 
+    async getDocumentsForBib(lyz, bib) {
+        return lyz.DB.queryAsync("SELECT doc FROM docs WHERE bib=? ORDER BY doc", [bib]);
+    },
+
+    async replaceKeysForBib(lyz, bib, keys) {
+        await lyz.DB.executeTransaction(async () => {
+            await this.clearKeysForBib(lyz, bib);
+            for (var zid of Object.keys(keys)) {
+                await this.insertKey(lyz, keys[zid], bib, zid);
+            }
+        });
+    },
+
     async updateKey(lyz, key, zid, bib) {
         await lyz.DB.queryAsync("UPDATE keys SET key=? WHERE zid=? AND bib=?", [key, zid, bib]);
     },

@@ -97,12 +97,12 @@ Menu command “Update BibTex” will update BibTeX database of the active LyX d
 
 When a single BibTeX database is shared among several authors, e.g. using version control system such as SVN and CVS, LyZ database is updated from local working copy of BibTeX database.
 
-The active document determines which BibTeX database is updated. If a key changes, LyZ can offer to rewrite associated LyX documents. This multi-document rewrite path creates `.lyz` backups, but it should still be used with version-controlled or otherwise backed-up documents; broader automated coverage is planned in the [roadmap](ROADMAP.md).
+The active document determines which BibTeX database is updated. In the 5.1.0 development workflow, changed keys require confirmation to save, close, rewrite and reopen every associated LyX document. Canceling this confirmation aborts the entire update. The bibliography and modified documents receive unique, verified backups named `<file>.lyz-<uuid>.lyz~`. Mappings are committed only after all required file writes succeed; caught failures restore attempted changes and report any incomplete recovery. Installed runtime validation of this workflow is pending; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
 
 Synchronization between LyX/BibTeX/LyZ
 --------------------------------------
 
-When Zotero reference is changed, BibTeX database as well as the LyX document can be updated. This is useful when nice BibTeX keys are used, such as ‘author year title’ and e.g. the title or the first author’s surname has been modified, which will result in modification of the BibTeX key. When the “Update BibTeX” is run, you should select to update the LyX document in case your modifications to Zotero references might affect your BibTeX keys. Before the update, a backup of the active LyX document is made (extension *.lyz). LyZ will save, close and then reopen your document.
+When a Zotero reference changes, the BibTeX database and associated LyX documents can be updated together. This is useful for readable keys such as ‘author year title’, where changing a title or author can change the key. The development workflow preserves existing citations if the required document rewrite is canceled or a Zotero item cannot be resolved. Backups capture the saved document contents, including previously unsaved edits. A successful update reopens all associated documents and selects the originally active document last. A forcibly interrupted process is not covered by automatic rollback yet; keep version-controlled or otherwise backed-up projects.
 
 Notes on usage
 --------------

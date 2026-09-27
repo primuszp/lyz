@@ -181,12 +181,29 @@ lyz-msg-no-valid-items =
 lyz-msg-aborting = Aborting
 
 lyz-msg-confirm-update-lyx-docs =
-    Your BibTeX database { $bib } has been updated.
-    Do you also want to update the associated LyX documents?
-    This is only necessary when any author, title or year has been modified,
-    or when the BibTeX key format has been changed.
+    Citation keys in { $bib } will change.
+    Save, close, update and reopen all associated LyX documents?
+    Verified backups will be kept beside the files.
+    Cancel aborts the entire update without changing the bibliography or mappings.
 
 lyz-msg-confirm-update-lyx-docs-title = Update LyX documents
+
+lyz-msg-key-update-title = LyZ citation key update
+
+lyz-msg-key-update-missing-item = Zotero item { $zid } is unavailable. The update was aborted to preserve existing citations.
+
+lyz-msg-key-update-rolled-back = No new mappings were committed. Any file changes made by this update were restored.
+
+lyz-msg-key-update-failed =
+    Update failed for: { $path }
+    { $error }
+    { $recovery }
+    Retained backup files:
+    { $backups }
+
+lyz-msg-key-update-reopen-failed =
+    The files and mappings were updated successfully, but LyX could not reopen these documents. Open them manually:
+    { $error }
 
 lyz-msg-items-changed = { $count } item(s) changed or added.
 

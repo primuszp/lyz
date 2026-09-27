@@ -115,9 +115,9 @@ var LyZBibTeX = {
     replaceBibTeXKey(text, oldkey, citekey) {
         var entryStart = /(@[a-zA-Z]+\s*\{\s*)([^,\s]+)(\s*,)/;
         if (oldkey && entryStart.test(text)) {
-            return text.replace(entryStart, "$1" + citekey + "$3");
+            return text.replace(entryStart, (match, start, key, end) => start + citekey + end);
         }
-        return text.replace(/(@[a-zA-Z]+\s*\{\s*)/, "$1" + citekey + ",");
+        return text.replace(/(@[a-zA-Z]+\s*\{\s*)/, (match, start) => start + citekey + ",");
     },
 
     async createCiteKey(lyz, id, text, bib, objKey, keyBlacklist) {

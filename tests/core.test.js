@@ -28,6 +28,7 @@ test("BibTeX helpers replace only the entry key and preserve field values", () =
         "@article{new,\n  title={An old result}\n}"
     );
     assert.equal(LyZBibTeX.extractBibTeXKey(source), "old");
+    assert.equal(LyZBibTeX.extractBibTeXKey(LyZBibTeX.replaceBibTeXKey(source, "old", "$&")), "$&");
     assert.equal(LyZBibTeX.escapeUnicodeForBibTeX("Árvíztűrő"), "{\\'A}rv{\\'i}zt{\\H{u}}r{\\H{o}}");
 });
 

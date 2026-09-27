@@ -181,12 +181,29 @@ lyz-msg-no-valid-items =
 lyz-msg-aborting = Megszakítás
 
 lyz-msg-confirm-update-lyx-docs =
-    A { $bib } BibTeX adatbázis frissítve.
-    Frissíteni kívánja a kapcsolódó LyX dokumentumokat is?
-    Ez csak akkor szükséges, ha szerző, cím vagy év módosult,
-    vagy ha a BibTeX kulcsformátum megváltozott.
+    A { $bib } bibliográfia hivatkozási kulcsai megváltoznak.
+    Mentsük, zárjuk be, frissítsük és nyissuk újra az összes kapcsolódó LyX-dokumentumot?
+    A fájlok mellett ellenőrzött biztonsági másolatok maradnak.
+    A Mégse a teljes frissítést megszakítja; a bibliográfia és az összerendelések változatlanok maradnak.
 
 lyz-msg-confirm-update-lyx-docs-title = LyX dokumentumok frissítése
+
+lyz-msg-key-update-title = LyZ hivatkozási kulcsok frissítése
+
+lyz-msg-key-update-missing-item = A(z) { $zid } Zotero-tétel nem érhető el. A meglévő hivatkozások védelmében a frissítés megszakadt.
+
+lyz-msg-key-update-rolled-back = Új összerendeléseket nem mentettünk. A frissítés során végzett fájlmódosításokat visszaállítottuk.
+
+lyz-msg-key-update-failed =
+    A frissítés ennél a fájlnál sikertelen: { $path }
+    { $error }
+    { $recovery }
+    Megőrzött biztonsági másolatok:
+    { $backups }
+
+lyz-msg-key-update-reopen-failed =
+    A fájlok és az összerendelések frissültek, de a LyX nem tudta újranyitni ezeket a dokumentumokat. Nyissa meg őket kézzel:
+    { $error }
 
 lyz-msg-items-changed = { $count } elem megváltozott vagy hozzáadva.
 

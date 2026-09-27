@@ -10,6 +10,7 @@ The preferred architecture is one canonical implementation for each responsibili
 - `lyx-server.js`: LyXServer transport and response parsing;
 - `bibtex-service.js`: BibTeX text and file helpers;
 - `database-service.js`: SQLite schema and mapping transactions;
+- `key-update-service.js`: citation token rewriting, verified file backups, coordinated key-update commit and rollback;
 - `locale-service.js` and `locale/*/lyz.ftl`: user-visible messages;
 - `lyz.js`: application workflow orchestration;
 - `bootstrap-ui.js`: Zotero UI integration.
@@ -44,6 +45,8 @@ Install `build/lyz.xpi` through **Zotero > Tools > Plugins > Tools for all plugi
 - Verify that a failed file write does not leave database mappings describing data that was never written.
 - For citation-key changes, verify the `.bib` output, LyX document rewrite, `.lyz` backup, and database mappings together.
 - Test English, German, and Hungarian strings when adding dialogs or settings.
+
+The isolated key-update fixtures and the pending installed-runtime checklist are documented in [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
 
 ## Pull requests
 

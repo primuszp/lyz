@@ -83,11 +83,42 @@ var LyZServer = {
     },
 
     extractClientResponse(clientID, command, response) {
-        var parsed = this.parseResponseForClient(clientID, command, response);
-        if (parsed === null) {
-            return null;
+        if (!response || typeof response !== "string") return null;
+        var escapedClient = clientID.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var escapedCommand = command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        var expression = new RegExp("^(?:INFO|ERROR):" + escapedClient + ":"
+            + escapedCommand + ":[^\\r\\n]*", "gm");
+        var matches = response.match(expression);
+        return matches ? matches[matches.length - 1].trim() : null;
+    },
+
+    async requireCommand(lyz, command) {
+        var options = { requireResponse: true };
+        var response = lyz.os === "Win"
+            ? await this.askServer(lyz, command, options)
+            : await this.askServerWithOpenStream(lyz, command, options);
+        var name = command.split(":")[0];
+        var value = this.parseResponse(name, response);
+        if (value === null) {
+            throw new Error("LyX command failed: " + command + " (" + (response || "no response") + ")");
         }
-        return "INFO:" + clientID + ":" + command + ":" + parsed;
+        return value;
+    },
+
+    writeCommand(stream, clientID, command) {
+        if (/[\r\n]/.test(command)) {
+            stream.close();
+            throw new Error("LyX commands cannot contain line breaks");
+        }
+        var bytes = new TextEncoder().encode("LYXCMD:" + clientID + ":" + command + "\n");
+        var data = Array.from(bytes, byte => String.fromCharCode(byte)).join("");
+        try {
+            if (stream.write(data, bytes.length) !== bytes.length) {
+                throw new Error("Incomplete LyX command write");
+            }
+        } finally {
+            stream.close();
+        }
     },
 
     delay(milliseconds) {
@@ -184,7 +215,7 @@ var LyZServer = {
         return cstream;
     },
 
-    async writeAndRead(lyz, command) {
+    async writeAndRead(lyz, command, options = {}) {
         var pipein, pipein_stream, msg, str, data;
         var clientID = this.createClientID();
 
@@ -211,12 +242,10 @@ var LyZServer = {
             return false;
         }
 
-        msg = "LYXCMD:" + clientID + ":" + command + "\n";
         this.debug("sending " + command + " as " + clientID);
-        pipein_stream.write(msg, msg.length);
-        pipein_stream.close();
+        this.writeCommand(pipein_stream, clientID, command);
 
-        if (!this.expectsResponse(command)) {
+        if (!options.requireResponse && !this.expectsResponse(command)) {
             return true;
         }
 
@@ -240,23 +269,23 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        var response = await this.waitForClientResponse(lyz, clientID, command, data);
+        var response = await this.waitForClientResponse(lyz, clientID, command.split(":")[0], data);
         if (!response) {
             this.debug("no response for " + command);
         }
         return response;
     },
 
-    async askServer(lyz, command) {
+    async askServer(lyz, command, options = {}) {
         try {
-            return await this.writeAndRead(lyz, command);
+            return await this.writeAndRead(lyz, command, options);
         } catch (x) {
             this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return false;
         }
     },
 
-    async writeAndReadWithOpenStream(lyz, command, cstream) {
+    async writeAndReadWithOpenStream(lyz, command, cstream, options = {}) {
         var pipein, pipein_stream, msg, str, data;
         var clientID = this.createClientID();
 
@@ -283,12 +312,10 @@ var LyZServer = {
             return false;
         }
 
-        msg = "LYXCMD:" + clientID + ":" + command + "\n";
         this.debug("sending " + command + " as " + clientID);
-        pipein_stream.write(msg, msg.length);
-        pipein_stream.close();
+        this.writeCommand(pipein_stream, clientID, command);
 
-        if (!this.expectsResponse(command)) {
+        if (!options.requireResponse && !this.expectsResponse(command)) {
             try {
                 cstream.close();
             } catch (e) {
@@ -302,14 +329,14 @@ var LyZServer = {
         cstream.readString(-1, str);
         data = str.value;
         cstream.close();
-        var response = await this.waitForClientResponse(lyz, clientID, command, data);
+        var response = await this.waitForClientResponse(lyz, clientID, command.split(":")[0], data);
         if (!response) {
             this.debug("no response for " + command);
         }
         return response;
     },
 
-    async askServerWithOpenStream(lyz, command) {
+    async askServerWithOpenStream(lyz, command, options = {}) {
         var cstream;
         try {
             cstream = this.pipeInit(lyz);
@@ -317,11 +344,18 @@ var LyZServer = {
             this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return null;
         }
+        if (!cstream) return null;
         try {
-            return await this.writeAndReadWithOpenStream(lyz, command, cstream);
+            return await this.writeAndReadWithOpenStream(lyz, command, cstream, options);
         } catch (x) {
             this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
             return null;
+        } finally {
+            try {
+                cstream.close();
+            } catch (closeError) {
+                // The normal response path may already have closed this stream.
+            }
         }
     }
 };
