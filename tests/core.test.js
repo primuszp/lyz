@@ -32,6 +32,24 @@ test("BibTeX helpers replace only the entry key and preserve field values", () =
     assert.equal(LyZBibTeX.escapeUnicodeForBibTeX("Árvíztűrő"), "{\\'A}rv{\\'i}zt{\\H{u}}r{\\H{o}}");
 });
 
+test("cite key patterns expand every documented keyword and keep other tokens literally", async () => {
+    const { LyZBibTeX } = loadScript("addon/chrome/content/lyz/bibtex-service.js", {
+        Zotero: {},
+        LyZDatabase: { findConflictingKey: async () => [] },
+        lyz_charmap: {}
+    });
+    const values = { author: "einstein", year: "1905", title: "ontheelectrodynamics", zotero: "1_ABCD", zoteroShort: "ABCD" };
+    assert.equal(LyZBibTeX.expandCiteKeyPattern("author year title", values), "einstein1905ontheelectrodynamics");
+    assert.equal(LyZBibTeX.expandCiteKeyPattern("author _ zoteroShort", values), "einstein_ABCD");
+    assert.equal(LyZBibTeX.expandCiteKeyPattern("Author year", values), "Author1905");
+    assert.equal(LyZBibTeX.expandCiteKeyPattern("", values), "lyz");
+
+    const lyz = { prefs: { getCharPref: () => "zoteroShort _ year" } };
+    const [key, text] = await LyZBibTeX.createCiteKey(lyz, "1_ABCD", "@article{old,\n  year={1905}\n}", "/x.bib", "ABCD", []);
+    assert.equal(key, "ABCD_1905");
+    assert.equal(text, "@article{ABCD_1905,\n  year={1905}\n}");
+});
+
 test("Unix LyX pipe paths expand the home-directory shorthand", () => {
     const { LyZSettings } = loadScript("addon/chrome/content/lyz/settings-service.js", {
         Zotero: { isWin: false },

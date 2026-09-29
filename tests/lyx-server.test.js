@@ -12,7 +12,13 @@ function transport(os, options = {}) {
     let response = "";
     let closed = 0;
     const components = {
-        "@mozilla.org/file/local;1": () => ({ initWithPath() {}, exists: () => true }),
+        "@mozilla.org/file/local;1": () => {
+            let path = "";
+            return {
+                initWithPath(value) { path = value; },
+                exists: () => !(options.missing && path.endsWith(options.missing))
+            };
+        },
         "@mozilla.org/network/file-input-stream;1": () => ({ init() {} }),
         "@mozilla.org/intl/converter-input-stream;1": () => ({
             init() {}, close() { closed++; }, readString(count, str) { str.value = response; }
@@ -72,6 +78,45 @@ for (const os of ["Win", "Linux"]) {
         await assert.rejects(f.server.requireCommand(f.lyz, "buffer-write"), /no response/);
     });
 }
+
+for (const os of ["Win", "Linux"]) {
+    test(os + " connection probe reports the active document without modal alerts", async () => {
+        const f = transport(os, { reply: ([, client, command]) => "INFO:" + client + ":" + command + ":/home/tester/Árvíztűrő.lyx\n" });
+        const result = await f.server.probe(f.lyz);
+        assert.deepEqual({ ...result }, { path: "testpipe", state: "ok", document: "/home/tester/Árvíztűrő.lyx" });
+        assert.equal(f.sent[0], "LYXCMD:lyz1:server-get-filename\n");
+        assert.deepEqual(f.alerts, []);
+    });
+
+    test(os + " connection probe distinguishes an empty LyX window, silence and explicit errors", async () => {
+        const empty = transport(os);
+        assert.equal((await empty.server.probe(empty.lyz)).state, "no-document");
+
+        const silent = transport(os, { reply: () => "INFO:other:server-get-filename:/foreign.lyx\n" });
+        assert.equal((await silent.server.probe(silent.lyz)).state, "no-response");
+
+        const failing = transport(os, { reply: ([, client, command]) => "ERROR:" + client + ":" + command + ":Unknown\n" });
+        const result = await failing.server.probe(failing.lyz);
+        assert.equal(result.state, "error");
+        assert.match(result.detail, /Unknown/);
+        assert.deepEqual([...empty.alerts, ...silent.alerts, ...failing.alerts], []);
+    });
+
+    test(os + " connection probe reports a missing pipe without writing a command", async () => {
+        const f = transport(os, { missing: ".in" });
+        const result = await f.server.probe(f.lyz);
+        assert.equal(result.state, "missing-pipe");
+        assert.equal(result.missing, ".in");
+        assert.deepEqual(f.sent, []);
+        assert.deepEqual(f.alerts, []);
+    });
+}
+
+test("ordinary commands still alert when the pipe is missing", async () => {
+    const f = transport("Win", { missing: ".in" });
+    assert.equal(await f.server.askServer(f.lyz, "server-get-filename"), false);
+    assert.deepEqual(f.alerts, ["lyz-server-wrong-path-hint"]);
+});
 
 test("the client extractor ignores prefixed garbage and keeps a complete ERROR reply", () => {
     const f = transport("Win");

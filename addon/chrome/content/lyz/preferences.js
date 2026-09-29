@@ -5,11 +5,19 @@ if (typeof Services === "undefined") {
 var LyZ_Preferences = {
     translators: [],
     saveStatusTimer: null,
+    connectionRequest: 0,
+    // Fixed sample item for the key preview, already normalized like LyZBibTeX.createCiteKey.
+    citeKeySample: {
+        citation: "Einstein, A. (1905). On the Electrodynamics of Moving Bodies",
+        values: { author: "einstein", year: "1905", title: "ontheelectrodynamics", zotero: "1_X7K2M9QD", zoteroShort: "X7K2M9QD" }
+    },
 
     async init() {
         LyZSettings.init();
         this.bindAutosave();
+        this.bindConnectionActions();
         this.loadValues();
+        this.setConnectionStatus({ state: "idle" });
         try {
             await this.loadTranslators();
         } catch (e) {
@@ -123,6 +131,8 @@ var LyZ_Preferences = {
             input.addEventListener("change", () => this.save(true));
             input.addEventListener("blur", () => this.save(false));
         }
+        document.getElementById("lyz-citekey").addEventListener("input", () => this.updateCiteKeyPreview());
+        document.getElementById("lyz-lyxserver").addEventListener("input", () => this.onServerPathChanged());
         for (const id of ["lyz-citekey-mode", "lyz-journalabbrev", "lyz-format-menu"]) {
             document.getElementById(id).addEventListener("command", () => this.save());
         }
@@ -136,6 +146,7 @@ var LyZ_Preferences = {
         if (mode == "custom" && !citeKeyInput.value) {
             citeKeyInput.value = "author year title";
         }
+        this.updateCiteKeyPreview();
         if (save) {
             this.save();
         }
@@ -184,6 +195,104 @@ var LyZ_Preferences = {
         this.saveStatusTimer = setTimeout(() => {
             status.hidden = true;
         }, 1500);
+    },
+
+    bindConnectionActions() {
+        document.getElementById("lyz-test-connection").addEventListener("command", () => this.testConnection());
+        document.getElementById("lyz-reset-server").addEventListener("command", () => this.resetServerPath());
+    },
+
+    onServerPathChanged() {
+        // Any earlier result belongs to a different path.
+        this.connectionRequest++;
+        this.setConnectionStatus({ state: "idle" });
+    },
+
+    resetServerPath() {
+        document.getElementById("lyz-lyxserver").value = LyZSettings.getDefaultLyXServerPath();
+        this.save(true);
+        this.onServerPathChanged();
+    },
+
+    async testConnection() {
+        this.save(false);
+        const request = ++this.connectionRequest;
+        const button = document.getElementById("lyz-test-connection");
+        const path = LyZSettings.detectLyXServerPath(document.getElementById("lyz-lyxserver").value);
+        button.disabled = true;
+        this.setConnectionStatus({ state: "checking", path });
+        let result;
+        try {
+            if (typeof Zotero === "undefined" || !Zotero.Lyz || !Zotero.Lyz.testConnection) {
+                throw new Error(LyZLocale.getString("lyz-pref-connection-unavailable"));
+            }
+            result = await Zotero.Lyz.testConnection();
+        } catch (e) {
+            result = { state: "error", path, detail: e && e.message ? e.message : String(e) };
+        }
+        // The button stays disabled while probing, so only one probe is ever in flight.
+        button.disabled = false;
+        if (request !== this.connectionRequest) {
+            return null;
+        }
+        this.setConnectionStatus(result);
+        return result;
+    },
+
+    setConnectionStatus(result) {
+        const state = result.state;
+        const known = ["idle", "checking", "ok", "no-document", "missing-pipe", "no-response", "error"];
+        const key = known.includes(state) ? state : "error";
+        const args = { path: result.path || "", document: result.document || "", detail: result.detail || "" };
+        document.getElementById("lyz-connection-status").setAttribute("data-state", key);
+        document.getElementById("lyz-connection-title").textContent = LyZLocale.getString("lyz-pref-connection-" + key, args);
+        document.getElementById("lyz-connection-detail").textContent = LyZLocale.getString("lyz-pref-connection-" + key + "-detail", args);
+        document.getElementById("lyz-connection-path").textContent = result.path
+            ? LyZLocale.getString("lyz-pref-connection-path", args)
+            : "";
+    },
+
+    describeCiteKey(mode, pattern) {
+        const values = this.citeKeySample.values;
+        if (mode == "translator") {
+            return { key: "", warning: "" };
+        }
+        if (mode != "custom") {
+            return { key: values[mode], warning: "" };
+        }
+        const keywords = LyZBibTeX.citeKeyPatternKeywords;
+        const tokens = String(pattern || "").split(" ").filter(Boolean);
+        const miscased = tokens.find(token => !keywords.includes(token)
+            && keywords.some(keyword => keyword.toLowerCase() == token.toLowerCase()));
+        let warning = "";
+        if (miscased) {
+            const keyword = keywords.find(word => word.toLowerCase() == miscased.toLowerCase());
+            warning = LyZLocale.getString("lyz-pref-citekey-warning-case", { token: miscased, keyword });
+        } else if (!tokens.some(token => keywords.includes(token))) {
+            warning = LyZLocale.getString("lyz-pref-citekey-warning-literal");
+        }
+        let key = LyZBibTeX.expandCiteKeyPattern(pattern || "author year title", values);
+        if (key == "lyz") {
+            key = LyZBibTeX.fallbackCiteKey(values.zotero);
+        }
+        return { key, warning };
+    },
+
+    updateCiteKeyPreview() {
+        const mode = this.getCiteKeyMode();
+        const preview = this.describeCiteKey(mode, document.getElementById("lyz-citekey").value);
+        const value = document.getElementById("lyz-citekey-preview-value");
+        document.getElementById("lyz-citekey-preview-label").textContent = LyZLocale.getString(
+            mode == "translator" ? "lyz-pref-citekey-preview-translator" : "lyz-pref-citekey-preview");
+        value.textContent = preview.key;
+        value.hidden = !preview.key;
+        document.getElementById("lyz-citekey-preview-sample").textContent = mode == "translator"
+            ? ""
+            : LyZLocale.getString("lyz-pref-citekey-preview-sample", { citation: this.citeKeySample.citation });
+        const warning = document.getElementById("lyz-citekey-warning");
+        warning.textContent = preview.warning;
+        warning.hidden = !preview.warning;
+        return preview;
     }
 };
 

@@ -46,6 +46,8 @@ Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements th
 
 Show whether the configured pipe is live, explain when the parent directory must be created, and provide a safe "Test connection" action with the resolved path and LyX response.
 
+Development status: an inline, dialog-free connection test reports the resolved path and the active document, a missing pipe, a missing document, no reply or a LyX error, each with localized next steps. A live citation-key preview flags patterns that will not expand. Pane controls are validated in installed Zotero 10.0.3 with an isolated LyX 2.5 pipe on Windows. Missing Unix parent-directory detection, macOS/Linux runs and keyboard/screen-reader review remain pending.
+
 ### Mapping management UI
 
 Replace prompt-driven rename/delete operations with one searchable view of documents, bibliographies, Zotero items, and citation keys. Include export and non-destructive repair actions.

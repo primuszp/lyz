@@ -15,7 +15,19 @@
         onchange="Zotero_Preferences.LyZ_Preferences.save(true)"/>
       <button id="lyz-save" data-l10n-id="lyz-pref-save-settings" oncommand="Zotero_Preferences.LyZ_Preferences.save(true)"/>
     </hbox>
-    <label id="lyz-save-status" value="" hidden="true"/>
+    <hbox id="lyz-connection-actions" align="center">
+      <button id="lyz-test-connection" data-l10n-id="lyz-pref-test-connection"/>
+      <button id="lyz-reset-server" data-l10n-id="lyz-pref-reset-server"/>
+      <label id="lyz-save-status" value="" hidden="true"/>
+    </hbox>
+    <html:div id="lyz-connection-status" class="lyz-status" data-state="idle" role="status" aria-live="polite">
+      <image class="lyz-status-icon" aria-hidden="true"/>
+      <html:div class="lyz-status-text">
+        <html:div id="lyz-connection-title" class="lyz-status-title"></html:div>
+        <html:div id="lyz-connection-detail" class="lyz-status-detail"></html:div>
+        <html:div id="lyz-connection-path" class="lyz-status-path"></html:div>
+      </html:div>
+    </html:div>
     <description data-l10n-id="lyz-pref-server-description"/>
   </groupbox>
 
@@ -37,6 +49,12 @@
       oninput="Zotero_Preferences.LyZ_Preferences.save(false)"
       onchange="Zotero_Preferences.LyZ_Preferences.save(true)"/>
     <description data-l10n-id="lyz-pref-custom-pattern-desc"/>
+    <html:div id="lyz-citekey-preview" class="lyz-preview" role="status" aria-live="polite">
+      <html:span id="lyz-citekey-preview-label" class="lyz-preview-label"></html:span>
+      <html:code id="lyz-citekey-preview-value" class="lyz-preview-value"></html:code>
+      <html:div id="lyz-citekey-preview-sample" class="lyz-preview-sample"></html:div>
+      <html:div id="lyz-citekey-warning" class="lyz-preview-warning" hidden="hidden"></html:div>
+    </html:div>
   </groupbox>
 
   <groupbox id="lyz-prefpane-export" data-l10n-id="lyz-pref-bibtex-export-group">

@@ -185,6 +185,33 @@ lyz-pref-bibtex-translators-desc = Die Standard-Zotero-Installation enthält nor
 
 lyz-pref-settings-saved = Einstellungen gespeichert: { $server }
 
+lyz-pref-test-connection =
+    .label = Verbindung testen
+lyz-pref-reset-server =
+    .label = Standard verwenden
+    .tooltiptext = Den plattformüblichen LyXServer-Pipe-Pfad wiederherstellen
+lyz-pref-connection-path = Pipe: { $path }
+lyz-pref-connection-unavailable = LyZ wird noch gestartet. Bitte versuchen Sie es gleich erneut.
+lyz-pref-connection-idle = Verbindung nicht getestet
+lyz-pref-connection-idle-detail = Starten Sie LyX und wählen Sie dann Verbindung testen, um den Pipe-Pfad zu prüfen.
+lyz-pref-connection-checking = Verbindung zu LyX wird hergestellt…
+lyz-pref-connection-checking-detail = Das dauert höchstens einige Sekunden.
+lyz-pref-connection-ok = Mit LyX verbunden
+lyz-pref-connection-ok-detail = Aktives Dokument: { $document }
+lyz-pref-connection-no-document = Mit LyX verbunden, aber kein Dokument geöffnet
+lyz-pref-connection-no-document-detail = Öffnen oder erstellen Sie ein LyX-Dokument, bevor Sie Zitate einfügen.
+lyz-pref-connection-missing-pipe = LyXServer-Pipe nicht gefunden
+lyz-pref-connection-missing-pipe-detail = Starten Sie LyX und tragen Sie denselben Pfad unter Werkzeuge ▸ Einstellungen ▸ Pfade ▸ LyXServer-Pipe ein. LyZ sucht den Pfad mit den Endungen .in und .out.
+lyz-pref-connection-no-response = LyX hat nicht geantwortet
+lyz-pref-connection-no-response-detail = Die Pipe existiert, aber LyX hat nicht rechtzeitig geantwortet. LyX ist möglicherweise beschäftigt, oder die Pipe stammt aus einer beendeten LyX-Sitzung. Starten Sie LyX neu und versuchen Sie es erneut.
+lyz-pref-connection-error = Verbindung fehlgeschlagen
+lyz-pref-connection-error-detail = { $detail }
+lyz-pref-citekey-preview = Beispielschlüssel:
+lyz-pref-citekey-preview-translator = Die Schlüssel werden vom ausgewählten Export-Übersetzer erzeugt.
+lyz-pref-citekey-preview-sample = für { $citation }
+lyz-pref-citekey-warning-case = Schlüsselwörter unterscheiden Groß- und Kleinschreibung: „{ $token }“ wird wörtlich übernommen. Meinten Sie „{ $keyword }“?
+lyz-pref-citekey-warning-literal = Das Muster enthält kein Schlüsselwort, daher erhält jeder Eintrag denselben Schlüssel mit angehängter Nummer.
+
 ## Dialog messages — LyX document / BibTeX selection
 
 lyz-msg-select-citation = Bitte mindestens ein Zitat auswählen.

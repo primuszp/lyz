@@ -1,0 +1,184 @@
+/* LyZ preferences pane. Zotero 7+ design tokens with fallbacks. */
+
+#lyz-prefpane {
+    --lyz-border: var(--fill-quinary, color-mix(in srgb, currentColor 18%, transparent));
+    --lyz-muted: var(--fill-secondary, color-mix(in srgb, currentColor 65%, transparent));
+    --lyz-surface: var(--fill-quinary, color-mix(in srgb, currentColor 5%, transparent));
+    --lyz-accent: var(--color-accent, var(--accent-blue, #2f7de1));
+    --lyz-ok: var(--accent-green, #2e8540);
+    --lyz-warn: var(--accent-orange, #c25e00);
+    --lyz-error: var(--accent-red, #d0342c);
+}
+
+#lyz-prefpane .main-section {
+    padding: 0 4px;
+}
+
+#lyz-prefpane groupbox {
+    margin-block-end: 14px;
+}
+
+#lyz-prefpane description {
+    margin-block-start: 6px;
+    color: var(--lyz-muted);
+    white-space: normal;
+}
+
+.lyz-text-input {
+    flex: 1;
+    min-width: 20em;
+    font: inherit;
+}
+
+#lyz-save {
+    margin-inline-start: 6px;
+    min-width: max-content;
+}
+
+#lyz-citekey-mode,
+#lyz-format-menu {
+    margin-inline-start: 8px;
+}
+
+#lyz-connection-actions {
+    margin-block-start: 6px;
+    gap: 6px;
+}
+
+#lyz-save-status {
+    margin-inline-start: 6px;
+    color: var(--lyz-accent);
+}
+
+
+/* ── Connection status ──────────────────────────────────────── */
+
+.lyz-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-block-start: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--lyz-border);
+    border-inline-start-width: 3px;
+    border-radius: 5px;
+    background: var(--lyz-surface);
+    --lyz-state: var(--lyz-muted);
+    border-inline-start-color: var(--lyz-state);
+}
+
+.lyz-status[data-state="checking"] { --lyz-state: var(--lyz-accent); }
+.lyz-status[data-state="ok"] { --lyz-state: var(--lyz-ok); }
+.lyz-status[data-state="no-document"],
+.lyz-status[data-state="no-response"] { --lyz-state: var(--lyz-warn); }
+.lyz-status[data-state="missing-pipe"],
+.lyz-status[data-state="error"] { --lyz-state: var(--lyz-error); }
+
+/* Zotero's own 16px status icons, tinted through context-fill like its toolbar icons. */
+.lyz-status-icon {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-block-start: 1px;
+    list-style-image: url("chrome://zotero/skin/16/universal/info.svg");
+    -moz-context-properties: fill, fill-opacity;
+    fill: var(--lyz-state);
+}
+
+.lyz-status[data-state="checking"] .lyz-status-icon {
+    list-style-image: url("chrome://zotero/skin/16/universal/sync.svg");
+    animation: lyz-spin 1s linear infinite;
+}
+
+.lyz-status[data-state="ok"] .lyz-status-icon {
+    list-style-image: url("chrome://zotero/skin/16/universal/tick.svg");
+}
+
+.lyz-status[data-state="missing-pipe"] .lyz-status-icon,
+.lyz-status[data-state="error"] .lyz-status-icon {
+    list-style-image: url("chrome://zotero/skin/16/universal/cross.svg");
+}
+
+@keyframes lyz-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lyz-status[data-state="checking"] .lyz-status-icon {
+        animation: none;
+    }
+}
+
+.lyz-status-text {
+    min-width: 0;
+}
+
+.lyz-status-title {
+    font-weight: 600;
+}
+
+.lyz-status-detail {
+    margin-block-start: 2px;
+    white-space: normal;
+}
+
+.lyz-status-detail:empty,
+.lyz-status-path:empty {
+    display: none;
+}
+
+.lyz-status-path {
+    margin-block-start: 4px;
+    color: var(--lyz-muted);
+    font-family: var(--monospace-font-family, monospace);
+    font-size: 0.92em;
+    overflow-wrap: anywhere;
+}
+
+
+/* ── Citation key preview ───────────────────────────────────── */
+
+.lyz-preview {
+    margin-block-start: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--lyz-border);
+    border-radius: 5px;
+    background: var(--lyz-surface);
+}
+
+.lyz-preview-label {
+    color: var(--lyz-muted);
+    margin-inline-end: 6px;
+}
+
+.lyz-preview-value {
+    font-family: var(--monospace-font-family, monospace);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.lyz-preview-value[hidden] {
+    display: none;
+}
+
+.lyz-preview-sample {
+    margin-block-start: 2px;
+    color: var(--lyz-muted);
+    font-size: 0.92em;
+}
+
+.lyz-preview-sample:empty {
+    display: none;
+}
+
+/* Body-colored text keeps contrast; the accent bar carries the warning color. */
+.lyz-preview-warning {
+    margin-block-start: 6px;
+    padding-inline-start: 7px;
+    border-inline-start: 3px solid var(--lyz-warn);
+    white-space: normal;
+}
+
+.lyz-preview-warning[hidden] {
+    display: none;
+}

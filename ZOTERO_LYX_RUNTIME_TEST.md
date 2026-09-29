@@ -1,6 +1,6 @@
 # Installed Zotero–LyX lifecycle test
 
-Verified on **2026-09-27**, Windows, Zotero **10.0.1**, Gecko **140.14.0**, LyX **2.5.3**, Hungarian locale. This tests unreleased 5.1.0 development source; extension metadata remains at 5.0.71 until release preparation.
+Verified on **2026-09-27**, Windows, Zotero **10.0.1**, Gecko **140.14.0**, LyX **2.5.3**, Hungarian locale. This tested unreleased 5.1.0 development source while extension metadata was still 5.0.71; development builds are now versioned 5.1.0-dev.
 
 ## Reproduce
 
@@ -36,6 +36,16 @@ The final successful run produced `result.json` in **`lyz-zotero-smoke-n4s_n117`
 All **126 Node regression tests** and add-on/test-hook JavaScript syntax checks also passed. The Node recovery suite covers additional termination checkpoints, including staging, each replacement and SQLite commit boundaries; see [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
 
 The rebuilt development artifact `build/lyz.xpi` contains 38 files, verified byte-for-byte against production source, with successful ZIP integrity and XHTML/RDF parsing checks. It contains no lifecycle hook. SHA-256: `40aca1d88d8fa1ab732bc8410999b53da76acd9e9ddf16d8a7459855f9d17894`. This artifact was not installed into the normal user profile or published.
+
+## Preferences pane check
+
+```powershell
+python tests/run-zotero-smoke.py --zotero 'C:\Program Files\Zotero\zotero.exe' --lyx "$env:LOCALAPPDATA\Programs\LyX 2.5\bin\LyX.exe" --preferences --lyx-userdir-template "$env:APPDATA\LyX2.5" --timeout 90
+```
+
+`--preferences` reuses the isolated profile, LyX user directory and unique pipe but appends `tests/zotero-preferences-smoke.js` instead of the lifecycle hook. `--dark` emulates the operating-system dark theme. The hook first compares the LyZ toolbar button and its menu icons with Zotero's own toolbar in the main window. It then opens the real LyZ pane in the Zotero settings window, clicks **Test connection** against the live isolated pipe and against a missing pipe, types into the citation-key pattern, and saves `prefs-*.png` snapshots of the toolbar, settings sidebar and pane in the run directory.
+
+Verified on **2026-09-29**, Windows, Zotero **10.0.3**, Gecko **140.15.0**, LyX 2.5, Hungarian locale: **20 checks passed** in light and dark mode. Checks cover the 20px toolbar icon tinted and sized like Zotero's New Item button, 16px icons on every toolbar menu item, resolution of all 11 referenced LyZ/Zotero icons, the settings sidebar entry (LyZ label and icon), Zotero's status icons with a pixel check that they are painted, pane stylesheet registration, Fluent labels, the example key from the shipped generator, the active Unicode document, the missing-pipe message with the tested path, clearing stale results after path edits, the case warning, autosave, and absence of modal alerts. A first attempt read the computed style before Zotero attached the stylesheet; the check now waits for it. The pixel check exposed a second defect: with a plugin-relative path, `PreferencePanes` loads the stylesheet from a `jar:file:` URL, which cannot load `chrome://zotero/skin` images, so the status icons had the correct computed style but painted nothing. The stylesheet is now registered by its `chrome://lyz/content/` URL; the old path fails the check with 0 painted pixels. The snapshots were reviewed manually. Keyboard navigation and screen-reader output remain unverified.
 
 ## Defects found and fixed
 

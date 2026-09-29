@@ -38,9 +38,8 @@ var LyZBootstrapUI = {
                 wantdropmarker: "true",
                 class: "zotero-tb-button"
             });
-            button.style.listStyleImage = `url("${bootstrap.rootURI}chrome/skin/default/lyz/lyz.svg")`;
-            button.style.setProperty("-moz-context-properties", "fill, fill-opacity");
-            button.style.fill = "currentColor";
+            // Inline copy of the overlay.css rule, in case the stylesheet has not applied yet.
+            button.style.listStyleImage = 'url("chrome://lyz-skin/content/lyz-20.svg")';
             const popup = this.createXULElement(doc, "menupopup", { id: "lyz-menupopup" });
             button.appendChild(popup);
 
@@ -56,15 +55,17 @@ var LyZBootstrapUI = {
     },
 
     appendToolbarCommandItems(doc, popup, bootstrap) {
-        this.appendMenuItem(doc, popup, "lyz-send", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommandSync("checkAndCite"), LyZLocale.getAttribute("lyz-cite-label", "tooltiptext"));
-        this.appendMenuItem(doc, popup, "lyz-update-bibtex", LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommandSync("updateBibtexAll"), LyZLocale.getAttribute("lyz-update-bibtex-label", "tooltiptext"));
+        // Toolbar dropdowns in Zotero show 16px icons; icons are set per id in overlay.css.
+        const iconic = item => item.setAttribute("class", "menuitem-iconic");
+        iconic(this.appendMenuItem(doc, popup, "lyz-send", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommandSync("checkAndCite"), LyZLocale.getAttribute("lyz-cite-label", "tooltiptext")));
+        iconic(this.appendMenuItem(doc, popup, "lyz-update-bibtex", LyZLocale.getAttribute("lyz-update-bibtex-label", "label"), () => bootstrap.runCommandSync("updateBibtexAll"), LyZLocale.getAttribute("lyz-update-bibtex-label", "tooltiptext")));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-manager", LyZLocale.getAttribute("lyz-manager-label", "label"), () => bootstrap.runCommandSync("mappingManager"));
+        iconic(this.appendMenuItem(doc, popup, "lyz-manager", LyZLocale.getAttribute("lyz-manager-label", "label"), () => bootstrap.runCommandSync("mappingManager")));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-settings", LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommandSync("settings"));
-        this.appendMenuItem(doc, popup, "lyz-diagnostics", LyZLocale.getAttribute("lyz-diagnostics-label", "label"), () => bootstrap.runCommandSync("databaseDiagnostics"));
+        iconic(this.appendMenuItem(doc, popup, "lyz-settings", LyZLocale.getAttribute("lyz-settings-label", "label"), () => bootstrap.runCommandSync("settings")));
+        iconic(this.appendMenuItem(doc, popup, "lyz-diagnostics", LyZLocale.getAttribute("lyz-diagnostics-label", "label"), () => bootstrap.runCommandSync("databaseDiagnostics")));
         popup.appendChild(this.createXULElement(doc, "menuseparator"));
-        this.appendMenuItem(doc, popup, "lyz-test", LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommandSync("test"));
+        iconic(this.appendMenuItem(doc, popup, "lyz-test", LyZLocale.getAttribute("lyz-test-label", "label"), () => bootstrap.runCommandSync("test")));
     },
 
     addToolsMenuFallback(doc, bootstrap) {
@@ -101,7 +102,8 @@ var LyZBootstrapUI = {
             return;
         }
         itemMenu.appendChild(this.createXULElement(doc, "menuseparator", { id: "lyz-context-separator" }));
-        this.appendMenuItem(doc, itemMenu, "lyz-context-cite", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommand("checkAndCite"));
+        this.appendMenuItem(doc, itemMenu, "lyz-context-cite", LyZLocale.getAttribute("lyz-cite-label", "label"), () => bootstrap.runCommand("checkAndCite"))
+            .setAttribute("class", "menuitem-iconic");
         bootstrap.debug("DOM fallback: item context menu inserted");
     },
 

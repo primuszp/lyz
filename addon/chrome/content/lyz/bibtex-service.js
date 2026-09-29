@@ -112,6 +112,17 @@ var LyZBibTeX = {
         return citekey || "lyz";
     },
 
+    citeKeyPatternKeywords: ["author", "year", "title", "zotero", "zoteroShort"],
+
+    // Replaces space-separated keywords with item values; other tokens are kept literally.
+    expandCiteKeyPattern(pattern, values) {
+        var citekey = "";
+        for (var token of String(pattern || "").split(" ")) {
+            citekey += this.citeKeyPatternKeywords.includes(token) ? (values[token] || "") : token;
+        }
+        return this.cleanCiteKey(citekey);
+    },
+
     replaceBibTeXKey(text, oldkey, citekey) {
         var entryStart = /(@[a-zA-Z]+\s*\{\s*)([^,\s]+)(\s*,)/;
         if (oldkey && entryStart.test(text)) {
@@ -124,6 +135,7 @@ var LyZBibTeX = {
         var oldkey = this.extractBibTeXKey(text);
         var dic = Object.create(null);
         dic.zotero = id;
+        dic.zoteroShort = objKey;
         var citekey;
         if (lyz.prefs.getCharPref("citekey") == "zotero") {
             citekey = this.cleanCiteKey(id);
@@ -139,7 +151,6 @@ var LyZBibTeX = {
         var author;
         var title;
         var year;
-        var p;
         citekey = "";
 
         authors = this.extractBibTeXField(text, "author") || this.extractBibTeXField(text, "editor");
@@ -200,16 +211,7 @@ var LyZBibTeX = {
         year = yearMatch ? yearMatch[1].replace(" ", "") : "";
         dic.year = year;
 
-        p = lyz.prefs.getCharPref("citekey").split(" ");
-        for (var j = 0; j < p.length; j++) {
-            if (p[j] in dic) {
-                citekey += dic[p[j]];
-            } else {
-                citekey += p[j];
-            }
-        }
-
-        citekey = this.cleanCiteKey(citekey);
+        citekey = this.expandCiteKeyPattern(lyz.prefs.getCharPref("citekey"), dic);
         if (citekey == "lyz") {
             citekey = this.fallbackCiteKey(id, objKey);
         }

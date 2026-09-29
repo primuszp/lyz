@@ -410,7 +410,7 @@ test("diagnostic export is reachable through MenuManager, toolbar and fallback m
     for (const item of bootstrap.getMenuItems()) item.onCommand();
     const ui = f.context.LyZBootstrapUI;
     ui.createXULElement = () => ({});
-    ui.appendMenuItem = (_doc, _parent, _id, _label, callback) => callback();
+    ui.appendMenuItem = (_doc, _parent, _id, _label, callback) => { callback(); return { setAttribute() {} }; };
     const popup = { appendChild() {} };
     ui.appendToolbarCommandItems({}, popup, bootstrap);
     ui.appendLyzCommandItems({}, popup, "tools", bootstrap);

@@ -185,6 +185,33 @@ lyz-pref-bibtex-translators-desc = Az alapértelmezett Zotero telepítés által
 
 lyz-pref-settings-saved = Beállítások mentve: { $server }
 
+lyz-pref-test-connection =
+    .label = Kapcsolat tesztelése
+lyz-pref-reset-server =
+    .label = Alapértelmezés
+    .tooltiptext = A platform alapértelmezett LyXServer pipe útvonalának visszaállítása
+lyz-pref-connection-path = Pipe: { $path }
+lyz-pref-connection-unavailable = A LyZ még indul. Próbálja újra néhány pillanat múlva.
+lyz-pref-connection-idle = A kapcsolat még nincs tesztelve
+lyz-pref-connection-idle-detail = Indítsa el a LyX-et, majd válassza a Kapcsolat tesztelése gombot a pipe útvonal ellenőrzéséhez.
+lyz-pref-connection-checking = Kapcsolódás a LyX-hez…
+lyz-pref-connection-checking-detail = Ez legfeljebb néhány másodpercig tart.
+lyz-pref-connection-ok = Kapcsolódva a LyX-hez
+lyz-pref-connection-ok-detail = Aktív dokumentum: { $document }
+lyz-pref-connection-no-document = Kapcsolódva a LyX-hez, de nincs megnyitott dokumentum
+lyz-pref-connection-no-document-detail = Hivatkozás beszúrása előtt nyisson meg vagy hozzon létre egy LyX dokumentumot.
+lyz-pref-connection-missing-pipe = A LyXServer pipe nem található
+lyz-pref-connection-missing-pipe-detail = Indítsa el a LyX-et, és ugyanezt az útvonalat adja meg az Eszközök ▸ Beállítások ▸ Útvonalak ▸ LyXServer pipe mezőben. A LyZ az útvonalat .in és .out végződéssel keresi.
+lyz-pref-connection-no-response = A LyX nem válaszolt
+lyz-pref-connection-no-response-detail = A pipe létezik, de a LyX nem válaszolt időben. Lehet, hogy a LyX elfoglalt, vagy a pipe egy korábban bezárt LyX munkamenetből maradt vissza. Indítsa újra a LyX-et, és próbálja újra.
+lyz-pref-connection-error = A kapcsolódás sikertelen
+lyz-pref-connection-error-detail = { $detail }
+lyz-pref-citekey-preview = Példa kulcs:
+lyz-pref-citekey-preview-translator = A kulcsokat a kiválasztott export fordító hozza létre.
+lyz-pref-citekey-preview-sample = ehhez: { $citation }
+lyz-pref-citekey-warning-case = A kulcsszavak kis- és nagybetű-érzékenyek: a(z) „{ $token }” szó szerint kerül a kulcsba. Erre gondolt: „{ $keyword }”?
+lyz-pref-citekey-warning-literal = A minta nem tartalmaz kulcsszót, ezért minden tétel ugyanazt a kulcsot kapja egy sorszámmal kiegészítve.
+
 ## Dialog messages — LyX document / BibTeX selection
 
 lyz-msg-select-citation = Kérjük, válasszon legalább egy hivatkozást.
