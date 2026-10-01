@@ -4,6 +4,8 @@ All notable changes to this maintained fork are documented here. Release artifac
 
 ## Unreleased — 5.1.0 development
 
+- Restore cursor-position queries through the bounded worker transport. Changed-key citation insertion uses the key actually committed by the coordinated update and a localized confirmation.
+- Recreate missing bibliographies and replace mapped files from their complete mapping set plus new selections, preserving existing document keys. Refuse unavailable items, invalid exports and duplicate keys before writing instead of omitting mapped entries.
 - Move native LyXServer I/O into a ChromeWorker, with a deadline across opening/writing/reading, cancellable Windows overlapped operations, nonblocking Unix endpoints and a UI watchdog. Serialize requests, use unique session/client identifiers, retain split UTF-8 replies and structured failure categories, and reconnect rotated output endpoints without resending commands.
 - Log resolved pipe, command name, client, duration and failure stage without command arguments or response/document contents. Windows transport accepts local named pipes; native macOS/Linux validation remains pending.
 - Make mapping inventory counts linear, check each distinct file through at most eight concurrent requests, and reuse normalized search text until the next inventory snapshot. Validate shared counts with 3000 additional references.

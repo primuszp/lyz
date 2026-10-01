@@ -109,7 +109,7 @@ function loadLyz(database = {}) {
         },
         PathUtils: {},
         LyZDatabase: database,
-        LyZBibTeX: {},
+        LyZBibTeX: loadScript("addon/chrome/content/lyz/bibtex-service.js").LyZBibTeX,
         LyZServer: {},
         LyZLocale: { getString: id => id }
     }).Zotero.Lyz;
@@ -134,7 +134,7 @@ test("initialization selects the native Windows, macOS and Linux pipe backend", 
     }
 });
 
-test("a rebuilt bibliography is written before its key mappings are updated", async () => {
+test("a rebuilt bibliography preserves existing citation keys despite changed metadata", async () => {
     const events = [];
     const lyz = loadLyz({
         getKeysForBib: async () => [{ zid: "1_A", key: "old" }],
@@ -143,10 +143,14 @@ test("a rebuilt bibliography is written before its key mappings are updated", as
     lyz.getZoteroItem = () => ({ key: "A" });
     lyz.wm = { getMostRecentWindow: () => ({}) };
     lyz.exportToBibtex = async () => ({ "1_A": ["new", "@article{new,}\n"] });
-    lyz.writeBib = () => events.push("file");
+    lyz.writeBib = (_bib, text, zids) => {
+        assert.equal(text, "@article{old,}\n");
+        assert.deepEqual([...zids], ["1_A"]);
+        events.push("file");
+    };
 
     assert.equal(await lyz.rebuildBibtexFromDatabase("paper.bib"), true);
-    assert.deepEqual(events, ["file", "database"]);
+    assert.deepEqual(events, ["file"]);
 });
 
 test("citation mappings are inserted only after the bibliography write succeeds", async () => {

@@ -77,6 +77,14 @@ The preferences runner now avoids creating the silent-pipe fixture used only by 
 
 The rebuilt `5.1.0-dev` XPI contains **40 production files**, with source-byte comparison, ZIP integrity and XHTML/RDF/SVG parsing verified, and no smoke-test hook. SHA-256: `35f2fa3d345a6cc1577b5acaa6c9070c64f879f9d5d6a2f85e2aa9f7911ce9dc`.
 
+## Citation review fixes — 2026-10-01
+
+All **169 Node regression tests** and JavaScript syntax checks pass. The new SQLite-backed citation suite covers complete mapped-file replacement (including unselected entries), missing-bibliography recreation with stable keys, unavailable items, invalid exports, duplicate keys, rejected writes and insertion of the actually committed key after a coordinated update.
+
+The installed Windows lifecycle passes **39 checks** with Zotero **10.0.1** and LyX **2.5.3** (`lyz-zotero-smoke-tw566pso`, `passed: true`, `restartedAfterTermination: true`). It now exercises cursor retrieval and changed-key insertion through the production citation command, then recreates a removed bibliography after metadata changes and replaces a mapped bibliography with an existing and a newly selected real Zotero item. Existing document keys remain valid and the recreated document association is checked. The test-only confirmation hook accepts the localized changed-record confirmation; a newly inserted citation can split a text marker, so the unsaved-text assertion compares the marker with citation insets removed.
+
+The rebuilt development XPI contains **40 production files**, verified against source bytes with ZIP integrity and XHTML/RDF/SVG checks, and no test hook. SHA-256: `85f42e24922811ff25efb798f7e4323984e8491548a9fc0397d94039b55e732b`.
+
 ## Remaining release checks (current)
 
 These are automated application integration checks. Confirmation answers are injected; actual dialog interaction, file pickers, keyboard navigation and visual layout remain unverified. The two associated documents share a bibliography but do not contain a LyX parent/child include relationship. Multiple LyX windows/views, other supported Zotero/LyX versions, macOS/Linux, native read-only/missing-document failures, native corruption/migration cases and power-loss durability require further checks.

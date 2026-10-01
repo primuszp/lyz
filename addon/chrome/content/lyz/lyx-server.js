@@ -93,6 +93,10 @@ var LyZServer = {
         return fname;
     },
 
+    getPosition(lyz) {
+        return this.requireCommand(lyz, "server-get-xy");
+    },
+
     parseResponse(command, response) {
         if (!response || typeof response !== "string") {
             return null;

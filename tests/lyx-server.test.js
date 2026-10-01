@@ -79,6 +79,14 @@ for (const os of ["Win", "Linux"]) {
     });
 }
 
+for (const os of ["Win", "Mac", "Linux"]) {
+    test(os + " cursor position uses the bounded transport and preserves the returned coordinates", async () => {
+        const f = transport(os, { reply: ([, client, command]) => "INFO:" + client + ":" + command + ":12 34\n" });
+        assert.equal(await f.server.getPosition(f.lyz), "12 34");
+        assert.equal(f.sent[0], "LYXCMD:lyzfixture_1:server-get-xy\n");
+    });
+}
+
 for (const os of ["Win", "Linux"]) {
     test(os + " connection probe reports the active document without modal alerts", async () => {
         const f = transport(os, { reply: ([, client, command]) => "INFO:" + client + ":" + command + ":/home/tester/Árvíztűrő.lyx\n" });

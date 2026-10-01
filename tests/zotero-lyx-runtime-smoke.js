@@ -7,7 +7,8 @@ LyZBootstrap.ensureLyzInitialized = async function() {
     var lyz = Zotero.Lyz;
     if (lyz) {
         var directory = Services.prefs.getStringPref("lyz.smoke.directory");
-        lyz.confirm = (message, title) => message.includes(directory)
+        lyz.confirm = (message, title) => (message.includes(directory)
+            || title === LyZLocale.getString("lyz-msg-record-changed-title"))
             && !(lyzSmokeRejectRewrite && title === LyZLocale.getString("lyz-msg-confirm-update-lyx-docs-title"));
         lyz.alert = (message, title) => lyzSmokeAlerts.push({ title, message });
         LyZServer.alert = (message, title) => lyzSmokeAlerts.push({ title, message });
@@ -83,6 +84,40 @@ async function lyzInstalledLifecycle() {
             var retried = await LyZDatabase.getKeysForBib(lyz, bib);
             assert([await read(master), await read(child)].every(text => text.includes('key "' + retried[0].key + '"')),
                 "retry commits consistent citations in both documents");
+            var restoredItem = lyz.getZoteroItem(retried[0].zid);
+            restoredItem.setCreators([{ firstName: "Test", lastName: "Recreated", creatorType: "author" }]);
+            await restoredItem.saveTx();
+            var pane = Zotero.getMainWindow().ZoteroPane;
+            await pane.selectItem(restoredItem.id);
+            var preservedKey = retried[0].key;
+            await LyZFiles.remove(bib);
+            await LyZBootstrap.runCommand("checkAndCite");
+            await command("buffer-write:force");
+            assert((await read(bib)).includes("@article{" + preservedKey + ","),
+                "native missing bibliography recreation preserves the document's existing key");
+            assert((await LyZDatabase.getKeysForBib(lyz, bib))[0].key === preservedKey,
+                "native recreation leaves existing key mappings unchanged despite changed metadata");
+
+            var addedItem = new Zotero.Item("journalArticle");
+            addedItem.setField("title", "New item during mapped bibliography replacement");
+            addedItem.setField("date", "2026");
+            addedItem.setCreators([{ firstName: "Test", lastName: "Additional", creatorType: "author" }]);
+            await addedItem.saveTx();
+            await pane.selectItems([restoredItem.id, addedItem.id]);
+            await LyZDatabase.deleteDocument(lyz, master);
+            var nativeSelect = lyz.selectBibForDocument;
+            lyz.selectBibForDocument = async () => ({ path: bib, replace: true });
+            try { await LyZBootstrap.runCommand("checkAndCite"); }
+            finally { lyz.selectBibForDocument = nativeSelect; }
+            await command("buffer-write:force");
+            var replacementKeys = await LyZDatabase.getKeysForBib(lyz, bib);
+            var replacementText = await read(bib);
+            assert(replacementKeys.length === 2 && replacementKeys.every(row => replacementText.includes("@article{" + row.key + ",")),
+                "native mapped-file replacement retains existing entries and adds the new selection");
+            var insertedText = await read(master);
+            assert(replacementKeys.every(row => insertedText.includes(row.key))
+                && (await LyZDatabase.getDocumentRecord(lyz, master))[0].bib === bib,
+                "native replacement inserts valid keys and restores the document association");
             report.passed = true;
             report.restartedAfterTermination = true;
             return;
@@ -119,7 +154,12 @@ async function lyzInstalledLifecycle() {
         item.setField("title", "Changed citation replacement title");
         item.setCreators([{ firstName: "Test", lastName: "Replacement", creatorType: "author" }]);
         await item.saveTx();
-        assert(await LyZBootstrap.runCommand("updateBibtexAll"), "production multi-document key update completes through native LyX commands");
+        var xy = await lyz.lyxGetPos();
+        assert(typeof xy === "string" && xy.length > 0, "native cursor position query works through the bounded transport");
+        await LyZBootstrap.runCommand("checkAndCite");
+        await command("buffer-write:force");
+        assert((await LyZDatabase.getKeysForBib(lyz, bib))[0].key !== oldKey,
+            "changed-key citation performs the production multi-document update and cursor restoration");
         var updated = await LyZDatabase.getKeysForBib(lyz, bib);
         var newKey = updated[0].key;
         report.keys = { oldKey, newKey };
@@ -127,7 +167,10 @@ async function lyzInstalledLifecycle() {
             "changed item metadata produces a new exported key and committed mapping");
         for (var [file, marker] of [[master, "UNSAVED MASTER EDIT"], [child, "UNSAVED CHILD EDIT"]]) {
             var text = await read(file);
-            assert(text.includes('key "' + newKey + '"') && !text.includes('key "' + oldKey + '"') && text.includes(marker),
+            // The inserted citation may split the saved text marker at the
+            // restored cursor. Compare its text after removing citation insets.
+            var plainText = text.replace(/\\begin_inset CommandInset citation[\s\S]*?\\end_inset/g, "").replace(/\r?\n/g, "");
+            assert(text.includes('key "' + newKey + '"') && !text.includes('key "' + oldKey + '"') && plainText.includes(marker),
                 "key rewrite and unsaved edit are preserved: " + LyZFiles.filename(file));
         }
         assert((await fingerprint(other)) === untouched[0] && (await fingerprint(otherBib)) === untouched[1], "unrelated document and bibliography remain byte-identical");

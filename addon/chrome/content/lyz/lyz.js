@@ -538,39 +538,53 @@ Zotero.Lyz = {
         return yield LyZBibTeX.createCiteKey(this, id, text, bib, obj_key, keyBlacklist);
     }),
 
-    rebuildBibtexFromDatabase: async function(bib) {
+    prepareBibliographyFromDatabase: async function(bib, additions = {}) {
         this.assertDatabaseReady();
-        var win = this.wm.getMostRecentWindow("navigator:browser");
         var ids_h = await LyZDatabase.getKeysForBib(this, bib);
         var ids = [];
         var zids = [];
         for (var i = 0; i < ids_h.length; i++) {
             var zid = ids_h[i].zid;
             var item = this.getZoteroItem(zid);
-            if (!item) {
-                Zotero.debug("LyZ skipped stale database key during rebuild: " + zid);
-                continue;
+            if (!item || item.deleted) {
+                throw new Error(LyZLocale.getString("lyz-msg-key-update-missing-item", { zid }));
             }
             ids.push(item);
             zids.push(zid);
         }
-        if (!ids.length) {
-            return false;
+        var exported = ids.length ? await this.exportToBibtex(ids, bib, zids) : {};
+        var entries = new Map();
+        // Recreating a file must preserve every key already used by documents.
+        // A key change belongs to updateBibtexAll's coordinated rewrite workflow.
+        for (var record of ids_h) {
+            var entry = exported[record.zid];
+            if (!entry || !entry[1]) throw new Error("Incomplete BibTeX export for " + record.zid);
+            entries.set(record.zid, [record.key, LyZBibTeX.replaceBibTeXKey(entry[1],
+                LyZBibTeX.extractBibTeXKey(entry[1]), record.key)]);
         }
-
-        var exported = await this.exportToBibtex(ids, bib, zids);
+        for (var zid of Object.keys(additions)) {
+            if (!entries.has(zid)) entries.set(zid, additions[zid]);
+        }
         var text = "";
         var newZids = [];
-        var newKeys = Object.create(null);
-        for (var id in exported) {
-            text += exported[id][1];
-            newZids.push(id);
-            newKeys[id] = exported[id][0];
+        var keys = Object.create(null);
+        var usedKeys = new Set();
+        for (var [zid, entry] of entries) {
+            if (!entry || !entry[0] || !entry[1] || /[,"\\\s]/.test(entry[0])
+                    || LyZBibTeX.extractBibTeXKey(entry[1]) !== entry[0]
+                    || usedKeys.has(entry[0])) throw new Error("Invalid or duplicate BibTeX key for " + zid);
+            usedKeys.add(entry[0]);
+            text += entry[1] + (entry[1].endsWith("\n") ? "" : "\n");
+            newZids.push(zid);
+            keys[zid] = entry[0];
         }
-        this.writeBib(bib, text, newZids, { replace: true });
-        for (var zid in newKeys) {
-            await LyZDatabase.updateKey(this, newKeys[zid], zid, bib);
-        }
+        return { text, zids: newZids, keys };
+    },
+
+    rebuildBibtexFromDatabase: async function(bib) {
+        var prepared = await this.prepareBibliographyFromDatabase(bib);
+        if (!prepared.zids.length) return false;
+        this.writeBib(bib, prepared.text, prepared.zids, { replace: true });
         return true;
     },
 
@@ -596,7 +610,6 @@ Zotero.Lyz = {
         var entries_text = "";
         var citekey;
         var text;
-        var recreateMissingBib = false;
         var replaceBibOnWrite = false;
         var updateDocumentMapping = false;
         if (bib.length === 0) {
@@ -614,7 +627,6 @@ Zotero.Lyz = {
                     LyZLocale.getString("lyz-msg-bibtex-missing", { doc, bib }),
                     LyZLocale.getString("lyz-msg-bibtex-missing-title"));
                 if (useExistingBib) {
-                    recreateMissingBib = true;
                     replaceBibOnWrite = true;
                 }
             } else {
@@ -633,14 +645,15 @@ Zotero.Lyz = {
             }
         }
         items = await this.exportToBibtex(zitems, bib);
+        var replacement = replaceBibOnWrite
+            ? await this.prepareBibliographyFromDatabase(bib, items) : null;
         keys = [];
         var zids = [];
         var pendingKeys = [];
 
         for ( var zid in items) {
-            citekey = items[zid][0];
+            citekey = replacement ? replacement.keys[zid] : items[zid][0];
             text = items[zid][1];
-            keys.push(citekey);
             //check database, if not in, append to entries_text
             //single key can be associated with several bibtex files
             res = await LyZDatabase.findKey(this, bib, zid);
@@ -650,14 +663,17 @@ Zotero.Lyz = {
                 pendingKeys.push([citekey, zid]);
                 entries_text += text;
             } else if (res[0].key != citekey) {
-                var ask = win
-                        .confirm(
-                                LyZLocale.getString("lyz-msg-record-changed"),
-                                LyZLocale.getString("lyz-msg-record-changed-title"));
+                var ask = this.confirm(
+                    LyZLocale.getString("lyz-msg-record-changed"),
+                    LyZLocale.getString("lyz-msg-record-changed-title"));
                 if (ask) {
-                    // FIXME: started to act weird
                     var xy = await this.lyxGetPos();
                     if (!await this.updateBibtexAll()) return;
+                    // The coordinated export may choose a different collision
+                    // suffix from the earlier selection-only export.
+                    res = await LyZDatabase.findKey(this, bib, zid);
+                    if (!res.length) throw new Error("Updated citation mapping is missing for " + zid);
+                    citekey = res[0].key;
                     if (this.os == "Win"){
                         await this.lyxAskServer("server-set-xy:" + xy);
                     } else {
@@ -667,12 +683,10 @@ Zotero.Lyz = {
                     return;
                 }
             }
+            keys.push(citekey);
         }
-        if (recreateMissingBib) {
-            var rebuilt = await this.rebuildBibtexFromDatabase(bib);
-            if (entries_text != "") {
-                this.writeBib(bib, entries_text, zids, { replace: !rebuilt });
-            }
+        if (replacement) {
+            this.writeBib(bib, replacement.text, replacement.zids, { replace: true });
         } else if (entries_text !== "") {
             this.writeBib(bib, entries_text, zids, { replace: replaceBibOnWrite });
         }
