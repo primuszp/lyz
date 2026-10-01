@@ -85,6 +85,12 @@ The installed Windows lifecycle passes **39 checks** with Zotero **10.0.1** and 
 
 The rebuilt development XPI contains **40 production files**, verified against source bytes with ZIP integrity and XHTML/RDF/SVG checks, and no test hook. SHA-256: `85f42e24922811ff25efb798f7e4323984e8491548a9fc0397d94039b55e732b`.
 
+## Release package verification — 5.1.0
+
+The final `5.1.0` source passes **169 Node regression tests** and add-on syntax checks. The release-version native Windows lifecycle passes **39 checks** with Zotero **10.0.3**, Gecko **140.15.0** and LyX **2.5.3** (`lyz-zotero-smoke-iazsbx4i`, `passed: true`, `restartedAfterTermination: true`). Earlier 39-check evidence above covers Zotero 10.0.1.
+
+The release XPI has **40 production files**, matching source bytes, valid ZIP/metadata/XHTML/RDF/SVG and no test hook. SHA-256: `ac2bf955bea4e9fb33bb06454fa8dfce811926a51580bb4807819612289ba268`. The package version is 5.1.0 in both JSON and RDF install metadata; the shipped target is Zotero 7–10. Historical legacy application update entries retain their earlier versions. The remaining platform/UI cases below are disclosed as known release limitations.
+
 ## Remaining release checks (current)
 
 These are automated application integration checks. Confirmation answers are injected; actual dialog interaction, file pickers, keyboard navigation and visual layout remain unverified. The two associated documents share a bibliography but do not contain a LyX parent/child include relationship. Multiple LyX windows/views, other supported Zotero/LyX versions, macOS/Linux, native read-only/missing-document failures, native corruption/migration cases and power-loss durability require further checks.

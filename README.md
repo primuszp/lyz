@@ -1,6 +1,6 @@
 LyZ
 ---
-LyZ is a plugin for [Zotero](https://www.zotero.org) that connects Zotero's library and BibTeX export with LyX through the LyXServer pipe. The latest stable version is [LyZ 5.0.71](https://github.com/primuszp/lyz/releases/tag/v5.0.71).
+LyZ is a plugin for [Zotero](https://www.zotero.org) that connects Zotero's library and BibTeX export with LyX through the LyXServer pipe. The latest release is [LyZ 5.1.0](https://github.com/primuszp/lyz/releases/tag/v5.1.0).
 
 Project documents:
 * [Changelog](CHANGELOG.md)
@@ -29,8 +29,8 @@ Main changes in this fork:
 
 Features
 --------
-* Startup database integrity/schema checks and diagnostic mapping export (unreleased 5.1.0 development).
-* Searchable document/bibliography mapping manager with previewed relinking and preserved original records (unreleased 5.1.0 development).
+* Startup database integrity/schema checks and diagnostic mapping export (new in 5.1.0).
+* Searchable document/bibliography mapping manager with previewed relinking and preserved original records (new in 5.1.0).
 * Inserting citations to LyX from Zotero.
 * BibTeX database automatically updated when citation is inserted.
 * BibTeX database can be updated when the references in Zotero are modified.
@@ -43,6 +43,22 @@ Features
 * Support for group cooperation.
 
 LyZ is distributed from the [GitHub releases page](https://github.com/primuszp/lyz/releases), not Mozilla Add-ons. Once a current release is installed, Zotero uses this fork's update manifest for subsequent updates.
+
+What is new in 5.1.0
+--------------------
+* **Safer citation-key updates:** update every associated document together, create unique verified backups, commit mappings after file verification, and restore recognized changes after a failure. A persistent journal supports recovery after Zotero terminates during an update.
+* **Mapping manager:** search documents, bibliographies and citation keys; inspect missing files/items, interrupted updates and archived records; preview relinking or removal before applying it. Removing a mapping does not delete the physical file.
+* **Database checks and diagnostics:** versioned schema, startup integrity checks, preserved migration records and JSON diagnostic export. Unsafe databases block data changes while inspection and diagnostics remain available.
+* **Connection settings:** inline Test connection and Use default actions, the resolved pipe path, active document and actionable connection states. Citation-key settings include a live example and pattern warnings.
+* **Updated graphics:** theme-aware Zotero-style toolbar, menu and preferences icons, with localized English, German and Hungarian UI.
+* **Responsive communication and search:** native LyX I/O runs in a worker with deadlines and structured errors; large mapping lists use bounded file checks, cached search text and periodic UI yields.
+* **Citation fixes:** restored cursor-position queries, insertion of the committed key after updates, and complete bibliography replacement/recreation that preserves keys already used by documents.
+
+Validation and limits
+--------------------
+The release passes **169 automated regression tests**. Installed Windows validation with **Zotero 10.0.1 / 10.0.3 and LyX 2.5.3** passes **39 lifecycle checks**, including real citation export/insertion, changed-key updates, rollback, actual process termination/restart recovery, missing-bibliography recreation and mapped-file replacement. The merged preferences pane also passed 20 checks in each of light and dark mode; the mapping manager passed 14 native checks during development. See the runtime reports linked above for exact evidence and boundaries.
+
+Compatibility metadata targets **Zotero 7–10**. Native macOS/Linux transport and broader version coverage remain unverified for this release. Multiple LyX windows and actual parent/child include relationships, interactive file pickers/recovery dialogs and native database-corruption scenarios still need validation. Keep independent copies of writing projects when adopting the new update/recovery workflow. Archived mappings can be inspected/exported; automatic archive restoration/import is not included.
 
 Installation and Settings
 -------------------------
@@ -102,7 +118,7 @@ Menu command “Update BibTex” will update BibTeX database of the active LyX d
 
 When a single BibTeX database is shared among several authors, e.g. using version control system such as SVN and CVS, LyZ database is updated from local working copy of BibTeX database.
 
-The active document determines which BibTeX database is updated. In the 5.1.0 development workflow, changed keys require confirmation to save, close, rewrite and reopen every associated LyX document. Canceling this confirmation aborts the entire update. The bibliography and modified documents receive unique, verified backups named `<file>.lyz-<uuid>.lyz~`. Mappings are committed only after all required file writes succeed; caught failures restore attempted changes and report any incomplete recovery. An isolated installed Windows lifecycle passes 31 checks with Zotero 10.0.1 and LyX 2.5.3; other platforms/windows remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
+The active document determines which BibTeX database is updated. In the 5.1.0 workflow, changed keys require confirmation to save, close, rewrite and reopen every associated LyX document. Canceling this confirmation aborts the entire update. The bibliography and modified documents receive unique, verified backups named `<file>.lyz-<uuid>.lyz~`. Mappings are committed only after all required file writes succeed; caught failures restore attempted changes and report any incomplete recovery. An isolated installed Windows lifecycle passes 31 checks with Zotero 10.0.1 and LyX 2.5.3; other platforms/windows remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md).
 
 Synchronization between LyX/BibTeX/LyZ
 --------------------------------------

@@ -6,6 +6,20 @@
             <rdf:Seq>
                 <rdf:li>
                     <rdf:Description>
+                        <em:version>5.1.0</em:version>
+                        <em:targetApplication>
+                            <rdf:Description>
+                                <em:id>zotero@zotero.org</em:id>
+                                <em:minVersion>7.0</em:minVersion>
+                                <em:maxVersion>10.0.*</em:maxVersion>
+                                <em:updateLink>https://github.com/primuszp/lyz/releases/download/v5.1.0/lyz.xpi</em:updateLink>
+                            </rdf:Description>
+                        </em:targetApplication>
+                    </rdf:Description>
+                </rdf:li>
+                <!-- Legacy application entries below retain their previous releases. -->
+                <rdf:li>
+                    <rdf:Description>
             <em:version>5.0.71</em:version>
                         <em:targetApplication>
                             <rdf:Description>

@@ -8,7 +8,7 @@ The roadmap favors data integrity, observable failures, and reproducible cross-p
 
 Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create verified `.lyz~` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
 
-Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. An installed Windows test with Zotero 10.0.1 and LyX 2.5.3 passes 34 checks, including real citation insertion/export, unsaved edits in two associated documents, cancellation, rollback, process termination and startup recovery. It exposed and fixed native Windows path handling and selection of already-open buffers. Other platforms, multiple-window validation, real parent/child include relationships and hardware power-loss behavior remain pending; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
+Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. An installed Windows test with Zotero 10.0.1 and LyX 2.5.3 passes 39 checks, including real citation insertion/export, unsaved edits in two associated documents, cancellation, rollback, process termination and startup recovery. It exposed and fixed native Windows path handling and selection of already-open buffers. Other platforms, multiple-window validation, real parent/child include relationships and hardware power-loss behavior remain pending; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). The Windows baseline is verified; the remaining matrix is documented as a known limitation of 5.1.0.
 
 Success criteria:
 
@@ -38,7 +38,7 @@ Development status (2026-10-01): native I/O now runs in a ChromeWorker with an o
 
 Build a repeatable fixture that opens an isolated LyX document, installs a test Zotero item, inserts a citation, updates the BibTeX entry, and verifies the document and mapping database.
 
-Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements the Windows fixture with a fresh Zotero profile/library, a separate LyX user directory and unique named pipe. It also verifies cancellation, partial-write rollback, abrupt Zotero termination and recovery in a new process. All 34 checks pass; confirmation answers and one write failure are injected by a test-only hook. macOS/Linux adapters, interactive UI review and broader version coverage remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
+Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements the Windows fixture with a fresh Zotero profile/library, a separate LyX user directory and unique named pipe. It also verifies cancellation, partial-write rollback, abrupt Zotero termination and recovery in a new process. All 39 checks pass; confirmation answers and one write failure are injected by a test-only hook. macOS/Linux adapters, interactive UI review and broader version coverage remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
 
 ## P2 — maintainability and user experience
 
@@ -71,4 +71,4 @@ Current CI already runs the Node.js tests and JavaScript syntax validation; pack
 
 ## Recommended next milestone
 
-Continue toward 5.1.0 by validating the new transport on macOS/Linux and other supported Zotero versions, then complete multiple-window, parent/child include and interactive UI checks. Windows transport hardening and the installed lifecycle now provide the baseline. Complete those remaining checks before release.
+For follow-up releases, validate the new transport on macOS/Linux and other supported Zotero versions, then complete multiple-window, parent/child include and interactive UI checks. Windows transport hardening and the installed lifecycle now provide the baseline. These checks remain priorities after the 5.1.0 Windows baseline release.

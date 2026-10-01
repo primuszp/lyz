@@ -11,9 +11,12 @@ git_release:
     branch: release
 
 version_strings:
+- path: addon/manifest.json
+  pattern: '("version": ")(?P<release>[^"]+)(")'
+- path: deploy/updates.json
+  pattern: '("version": ")(?P<release>[^"]+)(")'
+- path: deploy/updates.json
+  pattern: '("update_link": "https://github.com/primuszp/lyz/releases/download/v)(?P<release>[^/]+)(/lyz.xpi")'
 - path: addon/install.rdf
   pattern: (<em:version>)(?P<release>.*)(</em:version>)
-- path: deploy/update.rdf
-  pattern: (<em:version>)(?P<release>.*)(</em:version>)
-- path: deploy/update.rdf
-  pattern: (<em:updateLink>https://github.com/primuszp/lyz/releases/download/v)(?P<release>.*)(/lyz.xpi</em:updateLink>)
+# Update the modern RDF entry manually; historical application entries stay pinned.
