@@ -61,7 +61,7 @@ async function fixture(t, options = {}) {
     let active = docs[0];
     let writeCount = 0;
     const context = vm.createContext({
-        TextEncoder, TextDecoder,
+        TextEncoder, TextDecoder, setTimeout,
         PathUtils: { normalize: path => fs.realpathSync(path), isAbsolute },
         Services: { uuid: { generateUUID: () => "{fixture}" } },
         Components: {

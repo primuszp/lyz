@@ -32,7 +32,7 @@ Exercise current Zotero with supported LyX versions on macOS, Windows, and Linux
 
 Add bounded timeouts, structured error categories, stale-response rejection, and diagnostic logging that records the resolved pipe path, command, client identifier, and response state without exposing bibliography content.
 
-Current foundation: response polling has a timeout and client matching. Key updates also require INFO acknowledgements, reject ERROR responses, and encode Unicode commands as UTF-8. A hard timeout around native pipe I/O, session-wide stale-response protection, and structured diagnostics still need work.
+Development status (2026-10-01): native I/O now runs in a ChromeWorker with an opening/write/read deadline and a UI watchdog. Windows uses cancellable overlapped I/O on local named pipes; Unix uses nonblocking endpoints. Requests are serialized and carry unique session/client identifiers. Complete UTF-8 response lines are matched to the request; rotated Windows readers reconnect without resending a potentially executed command. Errors retain categories/stages and debug logs omit arguments/response contents. An installed Windows silent-pipe test verifies timeout and UI responsiveness, alongside the full update/recovery lifecycle. Native macOS/Linux and other supported Zotero versions still require validation.
 
 ### Automated installed smoke test
 
@@ -52,6 +52,8 @@ Replace prompt-driven rename/delete operations with one searchable view of docum
 
 Development status: the searchable manager, missing-file/item states, journal/archive views, diagnostic export, and previewed relink/remove actions are implemented. Manager changes preserve original rows in the same SQLite transaction and reject stale previews or occupied destinations. An isolated installed Zotero 10.0.1 test on Windows passes 14 native checks and caught/fixed resource registration and dialog loading. Archived-record restoration/import, broader corruption repair, manual layout/picker validation and other supported platforms/versions remain pending. See [MAPPING_MANAGER.md](MAPPING_MANAGER.md) and [ZOTERO_MAPPING_RUNTIME_TEST.md](ZOTERO_MAPPING_RUNTIME_TEST.md).
 
+Performance follow-up (2026-10-01): bibliography counts now use one pass, distinct file checks run with bounded concurrency, and normalized search text is cached per snapshot. Large copying, item lookup and indexing loops yield to UI events every 256 records. The manager still loads a complete consistent inventory; database-side paging/lazy detail loading remains a possible follow-up for very large libraries.
+
 ### Localization quality gate
 
 Check that every Fluent key exists in English, German, and Hungarian, and add automated validation for missing variables and generic dialog titles.
@@ -67,4 +69,4 @@ Current CI already runs the Node.js tests and JavaScript syntax validation; pack
 
 ## Recommended next milestone
 
-Continue toward 5.1.0 with LyXServer transport hardening: bound native pipe I/O, categorize errors and reject stale responses across the session. The installed Windows lifecycle fixture now provides a baseline for those changes. Complete the remaining platform/window and interactive checks before release.
+Continue toward 5.1.0 by validating the new transport on macOS/Linux and other supported Zotero versions, then complete multiple-window, parent/child include and interactive UI checks. Windows transport hardening and the installed lifecycle now provide the baseline. Complete those remaining checks before release.

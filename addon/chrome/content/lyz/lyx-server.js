@@ -1,11 +1,6 @@
 var LyZServer = {
     requestID: 0,
     responseTimeoutMS: 2500,
-    pollIntervalMS: 50,
-
-    getWindow(lyz) {
-        return lyz.wm ? lyz.wm.getMostRecentWindow("navigator:browser") : null;
-    },
 
     getPipePath(lyz) {
         if (typeof LyZSettings !== "undefined") {
@@ -29,7 +24,8 @@ var LyZServer = {
 
     createClientID() {
         this.requestID += 1;
-        return "lyz" + this.requestID;
+        if (!this.sessionID) this.sessionID = Services.uuid.generateUUID().toString().replace(/[^a-zA-Z0-9]/g, "");
+        return "lyz" + this.sessionID + "_" + this.requestID;
     },
 
     expectsResponse(command) {
@@ -73,7 +69,7 @@ var LyZServer = {
         }
         var escapedClient = clientID ? clientID.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "[^:]+";
         var escapedCommand = command.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        var re = new RegExp("INFO:" + escapedClient + ":" + escapedCommand + ":([^\\r\\n]*)", "g");
+        var re = new RegExp("^INFO:" + escapedClient + ":" + escapedCommand + ":([^\\r\\n]*)", "gm");
         var match;
         var value = null;
         while ((match = re.exec(response)) !== null) {
@@ -94,268 +90,92 @@ var LyZServer = {
 
     async requireCommand(lyz, command) {
         var options = { requireResponse: true };
-        var response = lyz.os === "Win"
-            ? await this.askServer(lyz, command, options)
-            : await this.askServerWithOpenStream(lyz, command, options);
+        var response = await this.writeAndRead(lyz, command, options);
         var name = command.split(":")[0];
         var value = this.parseResponse(name, response);
         if (value === null) {
-            throw new Error("LyX command failed: " + command + " (" + (response || "no response") + ")");
+            var error = new Error("LyX command failed: " + command + " (" + (response || "no response") + ")");
+            error.code = typeof response === "string" && response.startsWith("ERROR:") ? "lyx-error" : "invalid-response";
+            error.stage = "response";
+            throw error;
         }
         return value;
     },
 
-    writeCommand(stream, clientID, command) {
-        if (/[\r\n]/.test(command)) {
-            stream.close();
-            throw new Error("LyX commands cannot contain line breaks");
-        }
-        var bytes = new TextEncoder().encode("LYXCMD:" + clientID + ":" + command + "\n");
-        var data = Array.from(bytes, byte => String.fromCharCode(byte)).join("");
-        try {
-            if (stream.write(data, bytes.length) !== bytes.length) {
-                throw new Error("Incomplete LyX command write");
-            }
-        } finally {
-            stream.close();
-        }
+    // One canonical transport for Windows named pipes and Unix FIFOs.
+    createWorker() {
+        if (typeof ChromeWorker !== "undefined") return new ChromeWorker("chrome://lyz/content/lyx-pipe-worker.js");
+        return Components.classes["@mozilla.org/threads/workerfactory;1"]
+            .createInstance(Components.interfaces.nsIWorkerFactory)
+            .newChromeWorker("chrome://lyz/content/lyx-pipe-worker.js");
     },
 
-    delay(milliseconds) {
-        return new Promise(resolve => {
-            var timer = Components.classes["@mozilla.org/timer;1"]
-                    .createInstance(Components.interfaces.nsITimer);
-            timer.initWithCallback(resolve, milliseconds, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+    startTimer(callback, milliseconds) {
+        var timer = Components.classes["@mozilla.org/timer;1"].createInstance(Components.interfaces.nsITimer);
+        timer.initWithCallback(callback, milliseconds, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+        return timer;
+    },
+
+    transportError(code, stage, detail) {
+        var error = new Error("LyX transport " + code + " at " + stage + (detail ? ": " + detail : ""));
+        error.code = code; error.stage = stage;
+        return error;
+    },
+
+    async request(lyz, command, options) {
+        if (/[\r\n]/.test(command)) throw this.transportError("invalid-command", "write", "Line breaks are not allowed");
+        var path = this.getPipePath(lyz);
+        var clientID = this.createClientID();
+        var name = command.split(":")[0];
+        var started = Date.now();
+        var timeout = this.responseTimeoutMS;
+        var worker;
+        try { worker = this.createWorker(); }
+        catch (error) { throw this.transportError("worker-error", "worker", String(error)); }
+        // The worker's OS deadline includes opening, writing and reading. The UI
+        // watchdog also bounds worker startup/failure, allowing native cleanup first.
+        return new Promise((resolve, reject) => {
+            var timer;
+            var done = false;
+            var finish = (response, error) => {
+                if (done) return;
+                done = true;
+                timer?.cancel();
+                worker.terminate();
+                this.debug(JSON.stringify({ pipe: path, command: name, client: clientID,
+                    elapsedMS: Date.now() - started, state: error?.code || (typeof response === "string" && response.startsWith("ERROR:") ? "lyx-error" : "complete"), stage: error?.stage || "response",
+                    error: error?.message || null }));
+                if (error) reject(error); else resolve(response);
+            };
+            try {
+                timer = this.startTimer(() => finish(null, this.transportError("timeout", "worker")), timeout + 100);
+                worker.onerror = event => { event.preventDefault?.(); finish(null, this.transportError("worker-error", "worker", event.message)); };
+                worker.onmessage = event => {
+                    var result = event.data;
+                    finish(result.response, result.error && this.transportError(result.error.code, result.error.stage, result.error.detail));
+                };
+                worker.postMessage({ path, os: lyz.os, clientID, command: name,
+                    bytes: new TextEncoder().encode("LYXCMD:" + clientID + ":" + command + "\n"),
+                    requireResponse: !!options.requireResponse || this.expectsResponse(command), deadline: started + timeout });
+            } catch (error) { finish(null, error); }
         });
     },
 
-    readPipeOutput(lyz) {
-        var cstream = null;
-        try {
-            var pipeout = Components.classes["@mozilla.org/file/local;1"]
-                    .createInstance(Components.interfaces.nsIFile);
-            pipeout.initWithPath(this.getPipePath(lyz) + ".out");
-            if (!pipeout.exists()) {
-                return null;
-            }
-
-            var pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                    .createInstance(Components.interfaces.nsIFileInputStream);
-            cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                    .createInstance(Components.interfaces.nsIConverterInputStream);
-            var str = {};
-            pipeout_stream.init(pipeout, -1, 0, 0);
-            cstream.init(pipeout_stream, "UTF-8", 0, 0);
-            cstream.readString(-1, str);
-            cstream.close();
-            return str.value;
-        } catch (e) {
-            if (cstream) {
-                try {
-                    cstream.close();
-                } catch (closeError) {
-                    // Ignore cleanup failures while polling the named pipe.
-                }
-            }
-            return null;
-        }
-    },
-
-    async waitForClientResponse(lyz, clientID, command, initialData) {
-        var data = initialData;
-        var response = this.extractClientResponse(clientID, command, data);
-        if (response) {
-            return response;
-        }
-
-        var startedAt = Date.now();
-        while (Date.now() - startedAt < this.responseTimeoutMS) {
-            await this.delay(this.pollIntervalMS);
-            data = this.readPipeOutput(lyz);
-            response = this.extractClientResponse(clientID, command, data);
-            if (response) {
-                return response;
-            }
-        }
-        this.debug("timed out waiting for " + command + " response from " + clientID);
-        return null;
-    },
-
-    async getPosition(lyz) {
-        var res;
-        if (lyz.os == "Win") {
-            res = await this.askServer(lyz, "server-get-xy");
-        } else {
-            res = await this.askServerWithOpenStream(lyz, "server-get-xy");
-        }
-        return this.parseResponse("server-get-xy", res);
-    },
-
-    pipeInit(lyz) {
-        var pipeout;
-        var path;
-        var pipeout_stream;
-        var cstream;
-        var win = this.getWindow(lyz);
-
-        pipeout = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsIFile);
-        path = this.getPipePath(lyz);
-        pipeout.initWithPath(path + ".out");
-        if (!pipeout.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist", { path }));
-            return null;
-        }
-        pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                .createInstance(Components.interfaces.nsIFileInputStream);
-        cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                .createInstance(Components.interfaces.nsIConverterInputStream);
-        pipeout_stream.init(pipeout, -1, 0, 0);
-        cstream.init(pipeout_stream, "UTF-8", 0, 0);
-        return cstream;
-    },
-
-    async writeAndRead(lyz, command, options = {}) {
-        var pipein, pipein_stream, msg, str, data;
-        var clientID = this.createClientID();
-
-        try {
-            pipein = Components.classes["@mozilla.org/file/local;1"]
-                    .createInstance(Components.interfaces.nsIFile);
-            pipein.initWithPath(this.getPipePath(lyz) + ".in");
-        } catch (e) {
-            this.alert(LyZLocale.getString("lyz-server-wrong-path", { path: this.getPipePath(lyz), error: String(e) }));
-            return false;
-        }
-
-        if (!pipein.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-wrong-path-hint"));
-            return false;
-        }
-
-        try {
-            pipein_stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-                    .createInstance(Components.interfaces.nsIFileOutputStream);
-            pipein_stream.init(pipein, 0x02 | 0x10, 0666, 0);
-        } catch (e) {
-            this.alert(LyZLocale.getString("lyz-server-command-failed", { command }));
-            return false;
-        }
-
-        this.debug("sending " + command + " as " + clientID);
-        this.writeCommand(pipein_stream, clientID, command);
-
-        if (!options.requireResponse && !this.expectsResponse(command)) {
-            return true;
-        }
-
-        data = "";
-        str = {};
-
-        var pipeout = Components.classes["@mozilla.org/file/local;1"]
-                .createInstance(Components.interfaces.nsIFile);
-        pipeout.initWithPath(this.getPipePath(lyz) + ".out");
-        if (!pipeout.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-pipe-not-exist", { path: this.getPipePath(lyz) }));
-            return null;
-        }
-        var pipeout_stream = Components.classes["@mozilla.org/network/file-input-stream;1"]
-                .createInstance(Components.interfaces.nsIFileInputStream);
-        var cstream = Components.classes["@mozilla.org/intl/converter-input-stream;1"]
-                .createInstance(Components.interfaces.nsIConverterInputStream);
-        pipeout_stream.init(pipeout, -1, 0, 0);
-        cstream.init(pipeout_stream, "UTF-8", 0, 0);
-
-        cstream.readString(-1, str);
-        data = str.value;
-        cstream.close();
-        var response = await this.waitForClientResponse(lyz, clientID, command.split(":")[0], data);
-        if (!response) {
-            this.debug("no response for " + command);
-        }
-        return response;
+    writeAndRead(lyz, command, options = {}) {
+        var operation = (this.commandQueue || Promise.resolve()).then(() => this.request(lyz, command, options));
+        this.commandQueue = operation.catch(() => {});
+        return operation;
     },
 
     async askServer(lyz, command, options = {}) {
-        try {
-            return await this.writeAndRead(lyz, command, options);
-        } catch (x) {
-            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
+        try { return await this.writeAndRead(lyz, command, options); }
+        catch (error) {
+            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(error) }));
             return false;
         }
     },
 
-    async writeAndReadWithOpenStream(lyz, command, cstream, options = {}) {
-        var pipein, pipein_stream, msg, str, data;
-        var clientID = this.createClientID();
-
-        try {
-            pipein = Components.classes["@mozilla.org/file/local;1"]
-            .createInstance(Components.interfaces.nsIFile);
-            pipein.initWithPath(this.getPipePath(lyz) + ".in");
-        } catch (e) {
-            this.alert(LyZLocale.getString("lyz-server-wrong-path", { path: this.getPipePath(lyz), error: String(e) }));
-            return false;
-        }
-
-        if (!pipein.exists()) {
-            this.alert(LyZLocale.getString("lyz-server-wrong-path-hint"));
-            return false;
-        }
-
-        try {
-            pipein_stream = Components.classes["@mozilla.org/network/file-output-stream;1"]
-            .createInstance(Components.interfaces.nsIFileOutputStream);
-            pipein_stream.init(pipein, 0x02 | 0x10, 0666, 0);
-        } catch (e) {
-            this.alert(LyZLocale.getString("lyz-server-command-failed", { command }));
-            return false;
-        }
-
-        this.debug("sending " + command + " as " + clientID);
-        this.writeCommand(pipein_stream, clientID, command);
-
-        if (!options.requireResponse && !this.expectsResponse(command)) {
-            try {
-                cstream.close();
-            } catch (e) {
-                // Ignore close errors after fire-and-forget LyX commands.
-            }
-            return true;
-        }
-
-        data = "";
-        str = {};
-        cstream.readString(-1, str);
-        data = str.value;
-        cstream.close();
-        var response = await this.waitForClientResponse(lyz, clientID, command.split(":")[0], data);
-        if (!response) {
-            this.debug("no response for " + command);
-        }
-        return response;
-    },
-
-    async askServerWithOpenStream(lyz, command, options = {}) {
-        var cstream;
-        try {
-            cstream = this.pipeInit(lyz);
-        } catch (x) {
-            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
-            return null;
-        }
-        if (!cstream) return null;
-        try {
-            return await this.writeAndReadWithOpenStream(lyz, command, cstream, options);
-        } catch (x) {
-            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(x) }));
-            return null;
-        } finally {
-            try {
-                cstream.close();
-            } catch (closeError) {
-                // The normal response path may already have closed this stream.
-            }
-        }
+    askServerWithOpenStream(lyz, command, options = {}) {
+        return this.askServer(lyz, command, options);
     }
 };

@@ -39,6 +39,48 @@ def stop_process(process):
         process.wait(timeout=10)
 
 
+def silent_pipe_pair(base):
+    """Disposable local server accepts a command but deliberately never replies."""
+    import ctypes
+    from ctypes import wintypes
+    import threading
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateNamedPipeW.argtypes = [wintypes.LPCWSTR] + [wintypes.DWORD] * 6 + [wintypes.LPVOID]
+    kernel.CreateNamedPipeW.restype = wintypes.HANDLE
+    kernel.ConnectNamedPipe.argtypes = [wintypes.HANDLE, wintypes.LPVOID]
+    kernel.ReadFile.argtypes = [wintypes.HANDLE, wintypes.LPVOID, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD), wintypes.LPVOID]
+    kernel.DisconnectNamedPipe.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    handles = []
+    stopped = threading.Event()
+
+    def accept(handle, writing):
+        connected = kernel.ConnectNamedPipe(handle, None) or ctypes.get_last_error() == 535
+        if connected and not writing:
+            buffer = ctypes.create_string_buffer(4096)
+            count = wintypes.DWORD()
+            kernel.ReadFile(handle, buffer, len(buffer), ctypes.byref(count), None)
+        stopped.wait()
+
+    def close():
+        stopped.set()
+        for handle in handles:
+            kernel.DisconnectNamedPipe(handle)
+            kernel.CloseHandle(handle)
+
+    try:
+        for suffix, writing in [(".in", False), (".out", True)]:
+            handle = kernel.CreateNamedPipeW(base + suffix, (2 if writing else 1) | 0x80000, 0, 1, 65536, 65536, 0, None)
+            if handle == ctypes.c_void_p(-1).value:
+                raise ctypes.WinError(ctypes.get_last_error())
+            handles.append(handle)
+            threading.Thread(target=accept, args=(handle, writing), daemon=True).start()
+        return close
+    except BaseException:
+        close()
+        raise
+
+
 root = pathlib.Path(__file__).resolve().parent.parent
 run = pathlib.Path(tempfile.mkdtemp(prefix="lyz-zotero-smoke-"))
 profile = run / "profile"
@@ -81,6 +123,7 @@ if args.lyx:
     prefs["extensions.lyz.use_utf8"] = True
     prefs["extensions.lyz.citekey"] = "author year title"
     prefs["lyz.smoke.phase"] = "lifecycle"
+    prefs["lyz.smoke.silentPipe"] = pipe + "-silent"
     document = """#LyX 2.5 created this file. For more info see https://www.lyx.org/
 \\lyxformat 643
 \\begin_document
@@ -132,6 +175,7 @@ with (run / "console.log").open("w", encoding="utf-8") as log, contextlib.ExitSt
     if not args.windowed:
         command.append("--headless")
     if args.lyx:
+        cleanup.callback(silent_pipe_pair(prefs["lyz.smoke.silentPipe"]))
         lyx_log = (run / "lyx.log").open("w", encoding="utf-8")
         cleanup.callback(lyx_log.close)
         lyx_startupinfo = startupinfo

@@ -9,6 +9,7 @@ The preferred architecture is one canonical implementation for each responsibili
 - `settings-service.js`: preferences, portable paths, and pipe discovery;
 - `file-service.js`: native filesystem path conversion without changing stored paths or LyX commands;
 - `lyx-server.js`: LyXServer transport and response parsing;
+- `lyx-pipe-worker.js`: bounded native named-pipe/FIFO I/O on a ChromeWorker thread;
 - `bibtex-service.js`: BibTeX text and file helpers;
 - `database-service.js`: SQLite schema and mapping transactions;
 - `diagnostics-service.js`: read-only database evidence and safe JSON export;

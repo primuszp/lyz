@@ -43,8 +43,22 @@ LyX reports Windows document paths with forward slashes. Native Zotero `IOUtils.
 
 Selecting an already-open dirty document through `file-open` could wait for a native reload confirmation. The update now tries `buffer-switch` before saving and closing. An explicit server ERROR permits opening a closed document from disk; an uncertain transport failure aborts without another open request. The installed test exercises both unsaved buffers and a closed document, and focused regressions cover the fallback boundary.
 
-## Remaining release checks
+## Transport follow-up — 2026-10-01
+
+The installed Windows lifecycle now passes **34 checks**, including a missing pipe with a structured error category, a connected local pipe that accepts the command but never replies, a bounded timeout, and a Zotero event-loop timer firing during the wait. The silent endpoint is a disposable server created by the Python runner; normal user pipes are excluded. The same run performs real citation insertion/export, updates, rollback, abrupt termination, restart recovery and retry.
+
+Native I/O now runs in `lyx-pipe-worker.js` through a ChromeWorker. Windows requests use overlapped I/O with [`GetOverlappedResultEx` timeouts](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getoverlappedresultex) and cancellation before releasing operation buffers. Output reconnection handles LyX's rotating pipe instances without resending a command. Unix endpoints use [nonblocking FIFO access](https://www.man7.org/linux/man-pages/man7/fifo.7.html); SIGPIPE is blocked only for the worker's writes, consumed if pending and restored before returning the worker thread. Native macOS/Linux tests remain pending.
+
+The controller serializes requests, uses a UUID per session and increasing request IDs, matches complete response lines including split UTF-8, and applies a 2.5-second OS deadline plus a 100-ms UI watchdog allowance. Failures include a code and stage. Debug logs include the resolved pipe and command name, client identifier and elapsed time, excluding arguments and response contents. Windows paths must name local `\\.\pipe\…` endpoints.
+
+The local gate passes **140 tests**, including 3000 additional mapping records, bounded parallel file checks, UI responsiveness during item lookup/indexing and search-index refresh. Linux/macOS native bindings are simulated for nonblocking opens, regular-file refusal, EPIPE cleanup and signal-mask restoration. The installed mapping-manager smoke test also passes all **14 checks** after the performance changes. The original September evidence and checksum above describe the earlier artifact.
+
+Current native evidence: lifecycle `result.json` in `lyz-zotero-smoke-mvcpapnd` reports `passed: true`, 34 checks and `restartedAfterTermination: true`. The mapping-manager result is in `lyz-zotero-smoke-wtgjmqhx`.
+
+The current development XPI contains 39 production files, verified byte-for-byte, with successful ZIP integrity and XHTML/RDF checks and no smoke-test hook. SHA-256: `9afff65e5bb4cf4e3d5f0a53e1452ae1bb971001bc03c7283d591aa0c92b4870`. macOS is explicitly recognized at initialization so its worker selects libSystem and the platform-specific FIFO constants; this routing is covered by regression tests, while native macOS execution remains pending.
+
+## Remaining release checks (current)
 
 These are automated application integration checks. Confirmation answers are injected; actual dialog interaction, file pickers, keyboard navigation and visual layout remain unverified. The two associated documents share a bibliography but do not contain a LyX parent/child include relationship. Multiple LyX windows/views, other supported Zotero/LyX versions, macOS/Linux, native read-only/missing-document failures, native corruption/migration cases and power-loss durability require further checks.
 
-The native crash test covers a prepared journal after the first file replacement, not every native interruption boundary. External-edit and damaged-backup recovery cases are covered by Node fixtures and remain in the installed manual checklist. Native pipe I/O can still block outside the response-polling timeout; LyXServer transport hardening is the next roadmap step.
+The native crash test covers a prepared journal after the first file replacement, not every native interruption boundary. External-edit and damaged-backup recovery cases are covered by Node fixtures and remain in the installed manual checklist. Native timeout/cancellation behavior on macOS/Linux and broader version coverage are the next transport validation steps.

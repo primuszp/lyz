@@ -38,7 +38,9 @@ Zotero.Lyz = {
         //set up preferences
         if (Zotero.isWin){
             this.os = "Win";
-        } else {// assuming this works also for MacOS better
+        } else if (Zotero.isMac) {
+            this.os = "Mac";
+        } else {
             this.os = "Linux";
         }
         this.prefs = Services.prefs.getBranch("extensions.lyz.");
@@ -156,14 +158,6 @@ Zotero.Lyz = {
         return LyZServer.getPosition(this);
     },
 
-    lyxPipeInit : function() {
-        return LyZServer.pipeInit(this);
-    },
-
-    /*
-     * FIXME: two version of lyxPipeWriteRead and lyxAskServer, one combo works in Linux other in Windows
-     * Problem: I don't know why.
-     */
     lyxPipeWriteAndRead : function(command) {
         return LyZServer.writeAndRead(this, command);
     },
@@ -172,9 +166,6 @@ Zotero.Lyz = {
         return LyZServer.askServer(this, command);
     },
     
-    _lyxPipeWriteAndRead: function(command,cstream){
-        return LyZServer.writeAndReadWithOpenStream(this, command, cstream);
-    },
     
     _lyxAskServer: function(command){
         return LyZServer.askServerWithOpenStream(this, command);

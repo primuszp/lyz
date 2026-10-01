@@ -44,6 +44,30 @@ async function lyzInstalledLifecycle() {
         var lyz = Zotero.Lyz;
         assert(lyz.initialized && !lyz.databaseBlocked, "isolated Zotero database initializes");
         var command = value => LyZServer.requireCommand(lyz, value);
+        if (Services.prefs.getStringPref("lyz.smoke.phase") === "lifecycle") {
+            var originalPipe = Services.prefs.getStringPref("extensions.lyz.lyxserver");
+            var originalTimeout = LyZServer.responseTimeoutMS;
+            var silentPipe = Services.prefs.getStringPref("lyz.smoke.silentPipe");
+            try {
+                LyZServer.responseTimeoutMS = 500;
+                Services.prefs.setStringPref("extensions.lyz.lyxserver", silentPipe + "-missing");
+                var failure;
+                try { await command("server-get-filename"); } catch (error) { failure = error; }
+                assert(failure?.code === "missing-pipe", "native missing pipe fails with a structured category");
+                Services.prefs.setStringPref("extensions.lyz.lyxserver", silentPipe);
+                var ticked = false;
+                setTimeout(() => { ticked = true; }, 50);
+                var started = Date.now();
+                failure = null;
+                try { await command("server-get-filename"); } catch (error) { failure = error; }
+                assert(failure?.code === "timeout" && Date.now() - started < 1500,
+                    "a real connected silent Windows pipe times out within the request bound");
+                assert(ticked, "Zotero UI event loop remains responsive during native pipe waiting");
+            } finally {
+                Services.prefs.setStringPref("extensions.lyz.lyxserver", originalPipe);
+                LyZServer.responseTimeoutMS = originalTimeout;
+            }
+        }
         var active = await command("server-get-filename");
         if (Services.prefs.getStringPref("lyz.smoke.phase") === "recover") {
             var interrupted = await IOUtils.readJSON(path("crash-ready.json"));

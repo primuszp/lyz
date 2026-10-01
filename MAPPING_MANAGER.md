@@ -47,6 +47,8 @@ Preserved records can be inspected and exported. This first manager version does
 
 `tests/mapping-manager-ui.test.js` runs the production controller through a DOM adapter and checks accent-insensitive search, problem filtering, row/tab selection, keyboard focus, pagination, preview acknowledgment, cancellation, read-only export, stale-preview errors and safe text rendering. It does not emulate Gecko layout or Zotero window/file-picker behavior.
 
+The 2026-10-01 performance update counts documents/keys in one pass and checks each distinct path through at most eight concurrent file operations. Record copying, item lookup and search indexing yield to the UI every 256 records. Search caches folded record text in a WeakMap; fresh inventory objects invalidate the index without retaining old snapshots. Regression coverage adds 3000 references and checks shared counts, distinct file checks, concurrency bounds, UI timers during item lookup/indexing and refreshed search results. All 140 local tests pass. The manager still reads a complete snapshot before displaying pages; memory use and database-side paging remain follow-up topics for very large libraries.
+
 Local gate on 2026-09-27 (Windows, Node.js 26): **126 tests passed**, JavaScript syntax checks passed, XHTML parsed successfully, and XPI archive/source-content verification passed.
 
 For manual browser layout checks, run `node tests/mapping-preview-server.js` and open `http://127.0.0.1:8765/mapping-manager.xhtml`; append `?readonly=1` for the locked view. This fixture uses synthetic Hungarian data and never opens Zotero, SQLite or user documents. The Codex in-app browser blocked this local URL in this session, so visual/browser interaction validation is still pending.

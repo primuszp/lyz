@@ -2,6 +2,8 @@
 var LyZMappings = {
     plans: new Map(),
     busy: false,
+    fileConcurrency: 8,
+    yieldToUI() { return new Promise(resolve => setTimeout(resolve, 0)); },
 
     error(id, args) {
         return new Error(LyZLocale.getString("lyz-manager-error-" + id, args));
@@ -26,12 +28,14 @@ var LyZMappings = {
         var result = { docs: [], bibs: [], keys: [], recovery: [], archive: [], errors: [], editable: false };
         var read = async (table, columns) => {
             try {
-                return (await lyz.DB.queryAsync("SELECT " + columns.join(",") + " FROM " + table + " ORDER BY id"))
-                    .map(row => {
-                        var record = {};
-                        for (var column of columns) record[column] = row[column];
-                        return record;
-                    });
+                var records = [];
+                for (var row of await lyz.DB.queryAsync("SELECT " + columns.join(",") + " FROM " + table + " ORDER BY id")) {
+                    var record = {};
+                    for (var column of columns) record[column] = row[column];
+                    records.push(record);
+                    if (records.length % 256 === 0) await this.yieldToUI();
+                }
+                return records;
             } catch (error) {
                 result.errors.push({ table, error: String(error) });
                 return [];
@@ -48,24 +52,34 @@ var LyZMappings = {
             catch (error) { result.errors.push({ table: "snapshot", error: String(error) }); await snapshot(); }
         } else result.errors.push({ table: "connection", error: lyz.databaseStatus?.error || "No database connection" });
         var paths = new Map();
-        for (var path of new Set(result.docs.flatMap(row => [row.doc, row.bib]).concat(result.keys.map(row => row.bib)))) {
-            paths.set(path, await this.fileStatus(path));
-        }
+        var pending = Array.from(new Set(result.docs.flatMap(row => [row.doc, row.bib]).concat(result.keys.map(row => row.bib))));
+        var cursor = 0;
+        await Promise.all(Array.from({ length: Math.min(this.fileConcurrency, pending.length) }, async () => {
+            while (cursor < pending.length) {
+                var path = pending[cursor++];
+                paths.set(path, await this.fileStatus(path));
+            }
+        }));
+        var counts = new Map();
+        var countFor = bib => {
+            if (!counts.has(bib)) counts.set(bib, { documents: 0, keys: 0 });
+            return counts.get(bib);
+        };
         for (var row of result.docs) {
+            countFor(row.bib).documents++;
             row.file = paths.get(row.doc);
             row.bibliography = paths.get(row.bib);
         }
-        var bibPaths = new Set(result.docs.map(row => row.bib).concat(result.keys.map(row => row.bib)));
-        result.bibs = Array.from(bibPaths).sort().map(bib => ({
-            bib, file: paths.get(bib), documents: result.docs.filter(row => row.bib === bib).length,
-            keys: result.keys.filter(row => row.bib === bib).length
-        }));
+        var processed = 0;
         for (var row of result.keys) {
+            countFor(row.bib).keys++;
             var item = lyz.getZoteroItem(row.zid);
             row.itemState = item && !item.deleted ? "ok" : "missing";
             try { row.title = item?.getField("title") || ""; } catch (_) { row.title = ""; }
             row.file = paths.get(row.bib);
+            if (++processed % 256 === 0) await this.yieldToUI();
         }
+        result.bibs = Array.from(counts.keys()).sort().map(bib => ({ bib, file: paths.get(bib), ...counts.get(bib) }));
         result.editable = !lyz.databaseBlocked && !lyz.recoveryRequired && !result.recovery.length && !result.errors.length;
         if (result.editable) {
             try { await LyZDatabase.assertMappingEditReady(lyz); }

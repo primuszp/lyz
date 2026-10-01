@@ -9,53 +9,59 @@ const vm = require("node:vm");
 function transport(os, options = {}) {
     const sent = [];
     const alerts = [];
-    let response = "";
     let closed = 0;
-    const components = {
-        "@mozilla.org/file/local;1": () => ({ initWithPath() {}, exists: () => true }),
-        "@mozilla.org/network/file-input-stream;1": () => ({ init() {} }),
-        "@mozilla.org/intl/converter-input-stream;1": () => ({
-            init() {}, close() { closed++; }, readString(count, str) { str.value = response; }
-        }),
-        "@mozilla.org/network/file-output-stream;1": () => ({
-            init() {}, close() { closed++; }, write(data, count) {
-                const bytes = Uint8Array.from(data, char => char.charCodeAt(0));
-                const text = new TextDecoder().decode(bytes);
-                assert.equal(count, bytes.length);
-                sent.push(text);
-                const match = /^LYXCMD:([^:]+):([^:\n]+)(?::([^\n]*))?\n$/.exec(text);
-                assert.ok(match);
-                response = options.reply ? options.reply(match) : "INFO:" + match[1] + ":" + match[2] + ":";
-                return options.shortWrite ? count - 1 : count;
-            }
-        })
-    };
-    const context = vm.createContext({
-        TextEncoder,
-        Components: {
-            interfaces: {},
-            classes: Object.fromEntries(Object.entries(components)
-                .map(([key, factory]) => [key, { createInstance: factory }]))
-        },
+    let terminated = 0;
+    const workerContext = vm.createContext({ TextEncoder, TextDecoder, Uint8Array, setTimeout, onmessage: null });
+    vm.runInContext(readFileSync(resolve(__dirname, "../addon/chrome/content/lyz/lyx-pipe-worker.js"), "utf8"), workerContext);
+    const context = vm.createContext({ TextEncoder,
+        Components: { classes: {}, interfaces: {} },
         Services: { prompt: { alert: (parent, title, text) => alerts.push(text) } },
-        Zotero: { debug() {} },
-        LyZLocale: { getString: id => id }
+        Zotero: { debug() {} }, LyZLocale: { getString: id => id }
     });
     vm.runInContext(readFileSync(resolve(__dirname, "../addon/chrome/content/lyz/lyx-server.js"), "utf8"), context);
     const server = context.LyZServer;
-    server.responseTimeoutMS = 2;
-    server.delay = async () => {};
-    return {
-        server, sent, alerts, closed: () => closed,
-        lyz: { os, prefs: { getCharPref: () => "testpipe" } }
+    server.sessionID = "fixture";
+    server.responseTimeoutMS = 30;
+    server.startTimer = (callback, ms) => { const id = setTimeout(callback, ms); return { cancel: () => clearTimeout(id) }; };
+    server.createWorker = () => {
+        let chunks = [];
+        const worker = {
+            terminate() { terminated++; },
+            postMessage(request) {
+                if (options.stallWorker) return;
+                const io = {
+                    open: async () => { if (options.openFailure) throw Object.assign(new Error("missing"), { code: "missing-pipe" }); return {}; },
+                    write: (_fd, bytes) => {
+                        const text = new TextDecoder().decode(bytes); sent.push(text);
+                        const match = /^LYXCMD:([^:]+):([^:\n]+)(?::([^\n]*))?\n$/.exec(text);
+                        assert.ok(match);
+                        const response = options.reply ? options.reply(match) : "INFO:" + match[1] + ":" + match[2] + ":\n";
+                        chunks = options.chunks ? options.chunks(response) : [new TextEncoder().encode(response)];
+                        return options.shortWrite ? bytes.length - 1 : bytes.length;
+                    },
+                    read: () => {
+                        if (options.disconnectOnce) { options.disconnectOnce = false; throw Object.assign(new Error("rotated"), { code: "pipe-disconnected" }); }
+                        return chunks.shift() || null;
+                    },
+                    close() { closed++; }, dispose() {}
+                };
+                workerContext.LyZPipeWorker.run(request, io).then(
+                    response => worker.onmessage({ data: { response } }),
+                    error => worker.onmessage({ data: { error: { code: error.code, stage: error.stage, detail: error.message } } })
+                );
+            }
+        };
+        return worker;
     };
+    return { server, sent, alerts, closed: () => closed, terminated: () => terminated,
+        lyz: { os, prefs: { getCharPref: () => "testpipe" } } };
 }
 
 for (const os of ["Win", "Linux"]) {
     test(os + " key-update commands wait for acknowledgements and encode Unicode filenames as UTF-8", async () => {
         const f = transport(os);
         assert.equal(await f.server.requireCommand(f.lyz, "file-open:C:/Árvíztűrő/main.lyx"), "");
-        assert.equal(f.sent[0], "LYXCMD:lyz1:file-open:C:/Árvíztűrő/main.lyx\n");
+        assert.equal(f.sent[0], "LYXCMD:lyzfixture_1:file-open:C:/Árvíztűrő/main.lyx\n");
         assert.ok(f.closed() >= 2);
     });
 
@@ -69,7 +75,7 @@ for (const os of ["Win", "Linux"]) {
 
     test(os + " rejects a response belonging to another client", async () => {
         const f = transport(os, { reply: () => "INFO:other:buffer-write:\n" });
-        await assert.rejects(f.server.requireCommand(f.lyz, "buffer-write"), /no response/);
+        await assert.rejects(f.server.requireCommand(f.lyz, "buffer-write"), /timeout/);
     });
 }
 
@@ -82,15 +88,48 @@ test("the client extractor ignores prefixed garbage and keeps a complete ERROR r
 
 test("short command writes are rejected and the output stream is closed", async () => {
     const f = transport("Win", { shortWrite: true });
-    await assert.rejects(f.server.requireCommand(f.lyz, "buffer-write"), /no response/);
-    assert.equal(f.closed(), 1);
+    await assert.rejects(f.server.requireCommand(f.lyz, "buffer-write"), /short-write/);
+    assert.equal(f.closed(), 2);
 });
 
 test("commands with line breaks cannot inject a second LyX request", async () => {
     const f = transport("Win");
-    await assert.rejects(f.server.requireCommand(f.lyz, "file-open:bad\nname.lyx"), /no response/);
+    await assert.rejects(f.server.requireCommand(f.lyz, "file-open:bad\nname.lyx"), /invalid-command/);
     assert.equal(f.sent.length, 0);
-    assert.equal(f.closed(), 1);
+    assert.equal(f.closed(), 0);
+});
+
+test("split UTF-8 replies and incomplete lines cannot be mistaken for a complete response", async () => {
+    const f = transport("Win", { reply: ([, client, command]) => "INFO:old:" + command + ":stale\nINFO:" + client + ":" + command + ":árvíz.lyx\n",
+        chunks: response => [...new TextEncoder().encode(response)].map(byte => new Uint8Array([byte])) });
+    assert.equal(await f.server.requireCommand(f.lyz, "server-get-filename"), "árvíz.lyx");
+    assert.equal(f.closed(), 2);
+});
+
+test("a stalled worker is bounded and the next queued command still completes", async () => {
+    const options = { stallWorker: true };
+    const f = transport("Win", options);
+    const first = f.server.requireCommand(f.lyz, "buffer-write");
+    const rejected = assert.rejects(first, error => error.code === "timeout" && error.stage === "worker");
+    setTimeout(() => { options.stallWorker = false; }, 20);
+    const second = f.server.requireCommand(f.lyz, "buffer-close");
+    await rejected;
+    assert.equal(await second, "");
+    assert.equal(f.terminated(), 2);
+});
+
+test("native open failures retain their category and terminate the worker", async () => {
+    const f = transport("Win", { openFailure: true });
+    await assert.rejects(f.server.requireCommand(f.lyz, "server-get-filename"), error => error.code === "missing-pipe");
+    assert.equal(f.terminated(), 1);
+});
+
+test("a rotated output pipe reconnects without resending the command", async () => {
+    const f = transport("Win", { disconnectOnce: true });
+    f.server.responseTimeoutMS = 150;
+    assert.equal(await f.server.requireCommand(f.lyz, "buffer-write"), "");
+    assert.equal(f.sent.length, 1);
+    assert.equal(f.closed(), 3);
 });
 
 test("Zotero menu operations are serialized and a failure does not block the next operation", async () => {

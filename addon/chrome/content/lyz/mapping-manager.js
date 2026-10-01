@@ -1,6 +1,7 @@
 var LyZMappingManager = {
     api: null, data: null, view: "docs", selected: null, plan: null, busy: false, page: 0, pageSize: 50,
     $(id) { return document.getElementById(id); },
+    searchText: new WeakMap(),
     t(id, args) { return this.api.localize("lyz-manager-" + id, args); },
 
     async init(api) {
@@ -47,11 +48,25 @@ var LyZMappingManager = {
         return this.perform(async () => {
             this.clearSelection();
             this.data = await this.api.inventory();
+            await this.index(this.data);
             this.render();
         });
     },
 
     fold(text) { return String(text).normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase(); },
+
+    indexedText(row) {
+        if (!this.searchText.has(row)) this.searchText.set(row, this.fold(JSON.stringify(row)));
+        return this.searchText.get(row);
+    },
+
+    async index(data) {
+        var processed = 0;
+        for (var view of ["docs", "bibs", "keys"]) for (var row of data[view]) {
+            this.indexedText(row);
+            if (++processed % 256 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+        }
+    },
 
     records() {
         var query = this.fold(this.$("search").value).trim();
@@ -59,7 +74,7 @@ var LyZMappingManager = {
         return (this.data?.[this.view] || []).filter(row => {
             var issue = this.view === "recovery" || row.file?.state !== undefined && row.file.state !== "ok"
                 || row.bibliography?.state !== undefined && row.bibliography.state !== "ok" || row.itemState === "missing";
-            return (!query || this.fold(JSON.stringify(row)).includes(query)) && (!problems || issue);
+            return (!problems || issue) && (!query || this.indexedText(row).includes(query));
         });
     },
 
@@ -211,6 +226,7 @@ var LyZMappingManager = {
             } finally {
                 this.clearSelection();
                 this.data = await this.api.inventory();
+                await this.index(this.data);
                 this.render();
             }
         });

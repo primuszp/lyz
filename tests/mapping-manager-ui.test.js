@@ -45,7 +45,7 @@ function fixture(options = {}) {
         createElementNS: (_ns, tag) => new Element(tag)
     };
     const window = { listeners: {}, addEventListener(type, callback) { this.listeners[type] = callback; } };
-    const context = vm.createContext({ document, window });
+    const context = vm.createContext({ document, window, setTimeout });
     vm.runInContext(fs.readFileSync(join(root, "addon/chrome/content/lyz/mapping-manager.js"), "utf8"), context);
     const ok = { state: "ok" };
     const data = {
@@ -186,4 +186,40 @@ test("paths and raw journals are rendered as text rather than executable markup"
     assert.equal(f.elements.get("rows").querySelectorAll("pre")[0].textContent, hostile);
     await f.elements.get("tabs").children.find(button => button.dataset.view === "archive").fire("click");
     assert.equal(f.elements.get("rows").querySelectorAll("pre")[0].textContent, "null");
+});
+
+test("repeated searches reuse normalized record text and refresh invalidates the index", async () => {
+    const f = fixture();
+    let indexed = 0;
+    const fold = f.manager.fold.bind(f.manager);
+    f.manager.fold = text => { if (String(text).startsWith('{"id":')) indexed++; return fold(text); };
+    await f.manager.init(f.api);
+    f.manager.view = "keys";
+    f.elements.get("search").value = "Title";
+    assert.equal(f.manager.records().length, 65);
+    f.elements.get("search").value = "title 1";
+    assert.equal(f.manager.records().length, 11);
+    assert.equal(indexed, 67);
+    f.data.keys[0].title = "Changed title";
+    f.elements.get("search").value = "Changed";
+    await f.manager.refresh();
+    assert.equal(f.manager.records().length, 1);
+    assert.equal(indexed, 134);
+});
+
+test("large search indexes yield to UI events before indexing completes", async () => {
+    const f = fixture();
+    f.data.keys = Array.from({ length: 2500 }, (_, id) => ({ ...f.data.keys[0], id, title: "Scale " + id }));
+    let ticked = false, processed = 0, responsiveAtEnd = false;
+    const index = f.manager.indexedText.bind(f.manager);
+    f.manager.indexedText = row => {
+        if (++processed === 1) setTimeout(() => { ticked = true; }, 0);
+        if (processed === 2503) responsiveAtEnd = ticked;
+        return index(row);
+    };
+    await f.manager.init(f.api);
+    assert.equal(responsiveAtEnd, true);
+    f.manager.view = "keys";
+    f.elements.get("search").value = "Scale 2499";
+    assert.equal(f.manager.records().length, 1);
 });

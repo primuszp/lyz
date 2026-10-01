@@ -236,3 +236,34 @@ test("all manager messages and variables match across English, German and Hungar
         else reference = entries;
     }
 });
+
+test("large inventories count shared bibliographies correctly and bound concurrent file checks", async t => {
+    const f = await mappings(t);
+    const insert = f.database.prepare("INSERT INTO keys (key,bib,zid) VALUES (?,?,?)");
+    f.database.exec("BEGIN");
+    for (let i = 0; i < 3000; i++) insert.run("scale-" + i, join(f.directory, "scale-" + Math.floor(i / 10) + ".bib"), "1_SCALE" + i);
+    f.database.exec("COMMIT");
+    let active = 0, maximum = 0;
+    let lookupCount = 0, ticked = false, responsiveAtEnd = false;
+    const lookup = f.lyz.getZoteroItem.bind(f.lyz);
+    f.lyz.getZoteroItem = zid => {
+        if (++lookupCount === 1) setTimeout(() => { ticked = true; }, 0);
+        if (lookupCount === 3003) responsiveAtEnd = ticked;
+        return lookup(zid);
+    };
+    const inspected = [];
+    f.manager.fileStatus = async path => {
+        inspected.push(path); maximum = Math.max(maximum, ++active);
+        await new Promise(resolve => setImmediate(resolve));
+        active--;
+        return { state: "ok" };
+    };
+    const result = await f.manager.inventory(f.lyz);
+    assert.equal(result.keys.length, 3003);
+    assert.equal(result.bibs.filter(row => row.bib.includes("scale-")).every(row => row.keys === 10 && row.documents === 0), true);
+    assert.equal(result.bibs.find(row => row.bib === f.bib).documents, 2);
+    assert.equal(new Set(inspected).size, inspected.length);
+    assert.ok(maximum > 1 && maximum <= f.manager.fileConcurrency);
+    assert.equal(responsiveAtEnd, true, "UI timers run during large item lookup batches");
+    assert.equal(result.editable, true);
+});

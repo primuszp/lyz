@@ -97,6 +97,25 @@ function loadLyz(database = {}) {
     }).Zotero.Lyz;
 }
 
+test("initialization selects the native Windows, macOS and Linux pipe backend", async () => {
+    for (const [os, flags] of [["Win", { isWin: true }], ["Mac", { isMac: true }], ["Linux", { isLinux: true }]]) {
+        const { Zotero } = loadScript("addon/chrome/content/lyz/lyz.js", {
+            Zotero: { ...flags, Promise: { coroutine: generator => generator }, Schema: { schemaUpdatePromise: Promise.resolve() } },
+            Services: { prefs: { getBranch: () => ({}) }, obs: { addObserver() {} } },
+            PathUtils: {},
+            Components: {
+                classes: { "@mozilla.org/appshell/window-mediator;1": { getService: () => ({}) } },
+                interfaces: { nsIWindowMediator: {} }
+            },
+            LyZDatabase: { init: async () => false }
+        });
+        Zotero.Lyz.setDefaultPrefs = () => {};
+        Zotero.Lyz.showDatabaseBlocked = () => {};
+        await Zotero.Lyz.initialize();
+        assert.equal(Zotero.Lyz.os, os);
+    }
+});
+
 test("a rebuilt bibliography is written before its key mappings are updated", async () => {
     const events = [];
     const lyz = loadLyz({
@@ -174,21 +193,13 @@ test("LyX response parser selects the requested client and latest response", () 
     assert.equal(LyZServer.parseResponseForClient("missing", "server-get-filename", response), null);
 });
 
-test("LyX polling yields asynchronously until the client response arrives", async () => {
-    const { LyZServer } = loadScript("addon/chrome/content/lyz/lyx-server.js");
-    let reads = 0;
-    LyZServer.responseTimeoutMS = 100;
-    LyZServer.pollIntervalMS = 1;
-    LyZServer.delay = () => Promise.resolve();
-    LyZServer.readPipeOutput = () => {
-        reads += 1;
-        return reads < 2 ? "" : "INFO:lyz1:server-get-xy:10 20";
-    };
-
-    const response = await LyZServer.waitForClientResponse({}, "lyz1", "server-get-xy", "");
-
-    assert.equal(response, "INFO:lyz1:server-get-xy:10 20");
-    assert.equal(reads, 2);
+test("LyX request identifiers do not repeat across restarted sessions", () => {
+    let serial = 0;
+    const globals = { Services: { uuid: { generateUUID: () => "{session" + ++serial + "}" } } };
+    const first = loadScript("addon/chrome/content/lyz/lyx-server.js", globals).LyZServer;
+    const second = loadScript("addon/chrome/content/lyz/lyx-server.js", globals).LyZServer;
+    assert.notEqual(first.createClientID(), second.createClientID());
+    assert.equal(first.createClientID(), "lyzsession1_2");
 });
 
 class TestDBConnection {
