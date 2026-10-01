@@ -151,6 +151,7 @@ var LyZBootstrap = {
                 menus: [
                     {
                         menuType: "menuitem",
+                        icon: "chrome://lyz-skin/content/lyz-16.svg",
                         onShowing: (event, context) => this.setMenuLabel(context, LyZLocale.getAttribute("lyz-cite-label", "label")),
                         onCommand: () => this.runCommand("checkAndCite")
                     }
@@ -182,13 +183,17 @@ var LyZBootstrap = {
                 pluginID: "lyz@zotero.org",
                 id: "lyz-prefpane",
                 label: this.getPreferencePaneLabel(),
-                image: "chrome/skin/default/lyz/lyz.svg",
+                image: "chrome://lyz-skin/content/lyz-20.svg",
                 src: "chrome/content/lyz/preferences.xhtml",
                 scripts: [
                     "chrome/content/lyz/locale-service.js",
                     "chrome/content/lyz/settings-service.js",
+                    "chrome/content/lyz/bibtex-service.js",
                     "chrome/content/lyz/preferences.js"
-                ]
+                ],
+                // A chrome:// URL lets the stylesheet load Zotero's chrome://zotero/skin icons;
+                // a plugin-relative path resolves to jar:file:, whose images are blocked.
+                stylesheets: ["chrome://lyz/content/preferences.css"]
             });
             this.debug("registered preference pane: " + this.preferencePaneID);
         } catch (e) {
@@ -197,8 +202,9 @@ var LyZBootstrap = {
         }
     },
 
+    // Plugin panes sit next to Zotero's own ones in the settings sidebar, so they carry the plugin name.
     getPreferencePaneLabel() {
-        return LyZLocale.getAttribute("lyz-settings-label", "label").replace(/[.…]+$/, "");
+        return "LyZ";
     },
 
     getMenuItems() {

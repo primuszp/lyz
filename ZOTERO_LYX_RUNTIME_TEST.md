@@ -1,6 +1,6 @@
 # Installed Zotero–LyX lifecycle test
 
-Verified on **2026-09-27**, Windows, Zotero **10.0.1**, Gecko **140.14.0**, LyX **2.5.3**, Hungarian locale. This tests unreleased 5.1.0 development source; extension metadata remains at 5.0.71 until release preparation.
+Verified on **2026-09-27**, Windows, Zotero **10.0.1**, Gecko **140.14.0**, LyX **2.5.3**, Hungarian locale. This tested unreleased 5.1.0 development source while extension metadata was still 5.0.71; development builds are now versioned 5.1.0-dev.
 
 ## Reproduce
 
@@ -37,6 +37,16 @@ All **126 Node regression tests** and add-on/test-hook JavaScript syntax checks 
 
 The rebuilt development artifact `build/lyz.xpi` contains 38 files, verified byte-for-byte against production source, with successful ZIP integrity and XHTML/RDF parsing checks. It contains no lifecycle hook. SHA-256: `40aca1d88d8fa1ab732bc8410999b53da76acd9e9ddf16d8a7459855f9d17894`. This artifact was not installed into the normal user profile or published.
 
+## Preferences pane check
+
+```powershell
+python tests/run-zotero-smoke.py --zotero 'C:\Program Files\Zotero\zotero.exe' --lyx "$env:LOCALAPPDATA\Programs\LyX 2.5\bin\LyX.exe" --preferences --windowed --lyx-userdir-template "$env:APPDATA\LyX2.5" --timeout 90
+```
+
+`--preferences` reuses the isolated profile, LyX user directory and unique pipe but appends `tests/zotero-preferences-smoke.js` instead of the lifecycle hook. `--dark` emulates the operating-system dark theme. The hook first compares the LyZ toolbar button and its menu icons with Zotero's own toolbar in the main window. It then opens the real LyZ pane in the Zotero settings window, clicks **Test connection** against the live isolated pipe and against a missing pipe, types into the citation-key pattern, and saves `prefs-*.png` snapshots of the toolbar, settings sidebar and pane in the run directory.
+
+Verified on **2026-09-29**, Windows, Zotero **10.0.3**, Gecko **140.15.0**, LyX 2.5, Hungarian locale: **20 checks passed** in light and dark mode. Checks cover the 20px toolbar icon tinted and sized like Zotero's New Item button, 16px icons on every toolbar menu item, resolution of all 11 referenced LyZ/Zotero icons, the settings sidebar entry (LyZ label and icon), Zotero's status icons with a pixel check that they are painted, pane stylesheet registration, Fluent labels, the example key from the shipped generator, the active Unicode document, the missing-pipe message with the tested path, clearing stale results after path edits, the case warning, autosave, and absence of modal alerts. A first attempt read the computed style before Zotero attached the stylesheet; the check now waits for it. The pixel check exposed a second defect: with a plugin-relative path, `PreferencePanes` loads the stylesheet from a `jar:file:` URL, which cannot load `chrome://zotero/skin` images, so the status icons had the correct computed style but painted nothing. The stylesheet is now registered by its `chrome://lyz/content/` URL; the old path fails the check with 0 painted pixels. The snapshots were reviewed manually. Keyboard navigation and screen-reader output remain unverified.
+
 ## Defects found and fixed
 
 LyX reports Windows document paths with forward slashes. Native Zotero `IOUtils.read` rejected those paths with `NS_ERROR_FILE_UNRECOGNIZED_PATH`, although Node filesystem fixtures accepted them. `file-service.js` now converts Windows separators only at native file/path API boundaries, including backup and temporary paths. LyX commands, stored mappings and journals keep their paths; Unix paths retain literal backslashes.
@@ -55,7 +65,17 @@ The local gate passes **140 tests**, including 3000 additional mapping records, 
 
 Current native evidence: lifecycle `result.json` in `lyz-zotero-smoke-mvcpapnd` reports `passed: true`, 34 checks and `restartedAfterTermination: true`. The mapping-manager result is in `lyz-zotero-smoke-wtgjmqhx`.
 
-The current development XPI contains 39 production files, verified byte-for-byte, with successful ZIP integrity and XHTML/RDF checks and no smoke-test hook. SHA-256: `9afff65e5bb4cf4e3d5f0a53e1452ae1bb971001bc03c7283d591aa0c92b4870`. macOS is explicitly recognized at initialization so its worker selects libSystem and the platform-specific FIFO constants; this routing is covered by regression tests, while native macOS execution remains pending.
+The pre-merge transport development XPI contains 39 production files, verified byte-for-byte, with successful ZIP integrity and XHTML/RDF checks and no smoke-test hook. SHA-256: `9afff65e5bb4cf4e3d5f0a53e1452ae1bb971001bc03c7283d591aa0c92b4870`. macOS is explicitly recognized at initialization so its worker selects libSystem and the platform-specific FIFO constants; this routing is covered by regression tests, while native macOS execution remains pending.
+
+## Preferences/transport merge verification — 2026-10-01
+
+The `preferences-ux` branch is integrated with the worker-based transport. The inline probe uses the canonical bounded request directly and translates missing-pipe and timeout categories into pane states without modal alerts or synchronous pipe streams. Regressions verify a stalled worker, a subsequent successful probe and path-resolution failures. All **158 Node tests** and add-on syntax checks pass.
+
+On Windows with Zotero **10.0.1**, Gecko **140.14.0** and LyX **2.5.3**, the merged lifecycle passes **34 checks**, including abrupt termination/restart recovery (`lyz-zotero-smoke-3wg6tdx2`). The real preferences pane passes **20 checks in each of light and dark mode**, with no alerts or snapshot errors (`lyz-zotero-smoke-cs4p6eu2` and `lyz-zotero-smoke-m_mku384`). This includes native connection/missing-pipe results and painted status icons. Keyboard navigation and screen-reader output still require review.
+
+The preferences runner now avoids creating the silent-pipe fixture used only by the lifecycle tests. An unused synchronous pipe accept blocked cleanup in the first merged preferences runs after successful assertions; reruns exit successfully after this separation.
+
+The rebuilt `5.1.0-dev` XPI contains **40 production files**, with source-byte comparison, ZIP integrity and XHTML/RDF/SVG parsing verified, and no smoke-test hook. SHA-256: `35f2fa3d345a6cc1577b5acaa6c9070c64f879f9d5d6a2f85e2aa9f7911ce9dc`.
 
 ## Remaining release checks (current)
 

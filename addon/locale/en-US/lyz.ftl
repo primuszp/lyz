@@ -185,6 +185,33 @@ lyz-pref-bibtex-translators-desc = The default Zotero installation normally prov
 
 lyz-pref-settings-saved = Settings saved: { $server }
 
+lyz-pref-test-connection =
+    .label = Test connection
+lyz-pref-reset-server =
+    .label = Use default
+    .tooltiptext = Restore the platform default LyXServer pipe path
+lyz-pref-connection-path = Pipe: { $path }
+lyz-pref-connection-unavailable = LyZ is still starting. Try again in a moment.
+lyz-pref-connection-idle = Connection not tested
+lyz-pref-connection-idle-detail = Start LyX, then choose Test connection to check the pipe path.
+lyz-pref-connection-checking = Contacting LyX…
+lyz-pref-connection-checking-detail = This takes at most a few seconds.
+lyz-pref-connection-ok = Connected to LyX
+lyz-pref-connection-ok-detail = Active document: { $document }
+lyz-pref-connection-no-document = Connected to LyX, but no document is open
+lyz-pref-connection-no-document-detail = Open or create a LyX document before inserting citations.
+lyz-pref-connection-missing-pipe = LyXServer pipe not found
+lyz-pref-connection-missing-pipe-detail = Start LyX and set the same path under Tools ▸ Preferences ▸ Paths ▸ LyXServer pipe. LyZ looks for the path with .in and .out appended.
+lyz-pref-connection-no-response = LyX did not answer
+lyz-pref-connection-no-response-detail = The pipe exists but LyX did not reply in time. LyX may be busy, or the pipe may be left over from a closed LyX session. Restart LyX and try again.
+lyz-pref-connection-error = Connection failed
+lyz-pref-connection-error-detail = { $detail }
+lyz-pref-citekey-preview = Example key:
+lyz-pref-citekey-preview-translator = The selected export translator creates the keys.
+lyz-pref-citekey-preview-sample = for { $citation }
+lyz-pref-citekey-warning-case = Keywords are case-sensitive: “{ $token }” is inserted literally. Did you mean “{ $keyword }”?
+lyz-pref-citekey-warning-literal = The pattern contains no keyword, so every item receives the same key followed by a number.
+
 ## Dialog messages — LyX document / BibTeX selection
 
 lyz-msg-select-citation = Please select at least one citation.

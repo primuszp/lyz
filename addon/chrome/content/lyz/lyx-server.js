@@ -14,6 +14,43 @@ var LyZServer = {
         Services.prompt.alert(null, title, message);
     },
 
+    // Transport failures become modal alerts unless the caller collects them itself.
+    report(options, message) {
+        if (options && typeof options.onError === "function") {
+            options.onError(message);
+        } else {
+            this.alert(message);
+        }
+    },
+
+    /**
+     * Checks the configured LyXServer without modal dialogs.
+     * Resolves to { state, path, document?, detail? } where state is one of
+     * "ok", "no-document", "missing-pipe", "no-response", "error".
+     */
+    async probe(lyz) {
+        var result = {};
+        try {
+            result.path = this.getPipePath(lyz);
+            var command = "server-get-filename";
+            // Use the bounded worker transport directly: probing must never
+            // open a modal alert or use synchronous native pipe I/O.
+            var response = await this.writeAndRead(lyz, command, { requireResponse: true });
+            if (!response || response === true) {
+                return Object.assign(result, { state: "no-response" });
+            }
+            var document = this.parseResponse(command, response);
+            if (document === null) {
+                return Object.assign(result, { state: "error", detail: response });
+            }
+            return Object.assign(result, document ? { state: "ok", document } : { state: "no-document" });
+        } catch (error) {
+            var state = error.code === "missing-pipe" ? "missing-pipe"
+                : error.code === "timeout" ? "no-response" : "error";
+            return Object.assign(result, { state, detail: String(error) });
+        }
+    },
+
     debug(message) {
         if (typeof Zotero !== "undefined" && Zotero.debug) {
             Zotero.debug("LyZ server: " + message);
@@ -170,7 +207,7 @@ var LyZServer = {
     async askServer(lyz, command, options = {}) {
         try { return await this.writeAndRead(lyz, command, options); }
         catch (error) {
-            this.alert(LyZLocale.getString("lyz-server-error-general", { error: String(error) }));
+            this.report(options, LyZLocale.getString("lyz-server-error-general", { error: String(error) }));
             return false;
         }
     },

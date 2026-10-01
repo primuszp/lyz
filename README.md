@@ -48,7 +48,7 @@ Installation and Settings
 -------------------------
 1. Download `lyz.xpi` from the [latest GitHub release](https://github.com/primuszp/lyz/releases/latest).
 2. In Zotero, open **Tools > Plugins**, choose **Tools for all plugins > Install Plugin From File**, and select `lyz.xpi`.
-3. In LyX, open **LyX/Tools > Preferences > Paths** and set **LyXServer pipe**. Use the same base path in **Zotero > LyZ > Settings**.
+3. In LyX, open **LyX/Tools > Preferences > Paths** and set **LyXServer pipe**. Use the same base path in **Zotero > LyZ > Settings**, then choose **Test connection**: with LyX running, the pane should show the active document. Otherwise it says whether the pipe is missing, LyX did not answer, or no document is open.
 
 Recommended pipe paths:
 
@@ -93,7 +93,7 @@ Custom BibTeX keys
 ------------------
 * Custom BibTeX keys can be set in LyZ > Settings dialog.
 * The default format is “author year title”. Good alternative for the use with natbib package is format “zotero”, which will produce “human unreadable” BibTeX keys. It consists of library ID and zotero item key, e.g. `0_XXXXX`. Format keyword “zoteroShort” will produce only XXXXX, which can be used when exporting from OOo.
-* Key formats can be composed from keywords “author”, “year”, “title”, “zotero” and separators such as “\_” (the following characters should be safe to use: ``a-z, 0-9!$&*+-.:;<>?[]^\`|``), e.g. “author year title”, which will produce authoryeartitle BibTeX key, e.g. tichy1988thefoundations. If you prefer the default format used in Zotero BibTeX export (tichy\_thefoundations\_1988), change the pattern to “author _ title _ year”. The keywords and any separating characters have to be separated by space. Characters in citekeys are escaped and unsafe characters are removed conforming to the regular expression ``/[^a-z0-9\!\$\&\*\+\-\.\/\:\;\<\>\?\[\]\^\_\`\|]+/g``.
+* Key formats can be composed from keywords “author”, “year”, “title”, “zotero”, “zoteroShort” and separators such as “\_” (the following characters should be safe to use: ``a-z, 0-9!$&*+-.:;<>?[]^\`|``), e.g. “author year title”, which will produce authoryeartitle BibTeX key, e.g. tichy1988thefoundations. If you prefer the default format used in Zotero BibTeX export (tichy\_thefoundations\_1988), change the pattern to “author _ title _ year”. The keywords and any separating characters have to be separated by space. Keywords are case-sensitive; the settings pane shows an example key while you type and warns about patterns that will not expand. Characters in citekeys are escaped and unsafe characters are removed conforming to the regular expression ``/[^a-z0-9\!\$\&\*\+\-\.\/\:\;\<\>\?\[\]\^\_\`\|]+/g``.
 * If you use custom BibTeX translator and want to use the cite keys generated in the translator, go to LyZ > Setting and switch creation of cite keys off.
 
 Update BibTeX

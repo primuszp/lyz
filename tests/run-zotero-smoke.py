@@ -21,12 +21,17 @@ parser.add_argument("--windowed", action="store_true", help="Use hidden native w
 parser.add_argument("--lyx", type=pathlib.Path, help="Run the full installed Zotero/LyX lifecycle instead of mapping UI checks")
 parser.add_argument("--lyx-userdir-template", type=pathlib.Path,
                     help="Copy generated LyX catalogs/defaults only; never sessions or user preferences")
+parser.add_argument("--preferences", action="store_true",
+                    help="With --lyx: check the preferences pane and connection test instead of the lifecycle")
+parser.add_argument("--dark", action="store_true", help="Emulate the operating system dark theme")
 parser.add_argument("--inspect-lyx", action="store_true", help="Show the isolated LyX window for interactive test diagnostics")
 args = parser.parse_args()
 if not args.zotero.is_file():
     parser.error("--zotero must name an installed executable")
 if args.lyx and (os.name != "nt" or not args.lyx.is_file()):
     parser.error("--lyx requires an installed Windows executable")
+if args.preferences and not args.lyx:
+    parser.error("--preferences requires --lyx")
 if args.timeout <= 0:
     parser.error("--timeout must be positive")
 if args.lyx_userdir_template and not (args.lyx_userdir_template / "lyxrc.defaults").is_file():
@@ -107,6 +112,8 @@ prefs = {
     "intl.locale.requested": "hu-HU",
     "lyz.smoke.directory": str(run),
 }
+if args.dark:
+    prefs["ui.systemUsesDarkTheme"] = 1
 lyx_process = None
 lyx_log = None
 if args.lyx:
@@ -155,7 +162,9 @@ options "plain"
 (profile / "user.js").write_text("\n".join(
     f"user_pref({json.dumps(key)}, {json.dumps(value)});" for key, value in prefs.items()
 ), encoding="utf-8")
-hook = (root / ("tests/zotero-lyx-runtime-smoke.js" if args.lyx else "tests/zotero-runtime-smoke.js")).read_bytes()
+hook_name = ("tests/zotero-preferences-smoke.js" if args.preferences
+             else "tests/zotero-lyx-runtime-smoke.js" if args.lyx else "tests/zotero-runtime-smoke.js")
+hook = (root / hook_name).read_bytes()
 with zipfile.ZipFile(extensions / "lyz@zotero.org.xpi", "w", zipfile.ZIP_DEFLATED) as archive:
     for path in sorted((root / "addon").rglob("*")):
         if path.is_file():
@@ -175,7 +184,8 @@ with (run / "console.log").open("w", encoding="utf-8") as log, contextlib.ExitSt
     if not args.windowed:
         command.append("--headless")
     if args.lyx:
-        cleanup.callback(silent_pipe_pair(prefs["lyz.smoke.silentPipe"]))
+        if not args.preferences:
+            cleanup.callback(silent_pipe_pair(prefs["lyz.smoke.silentPipe"]))
         lyx_log = (run / "lyx.log").open("w", encoding="utf-8")
         cleanup.callback(lyx_log.close)
         lyx_startupinfo = startupinfo

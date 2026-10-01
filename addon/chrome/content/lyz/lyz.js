@@ -171,6 +171,12 @@ Zotero.Lyz = {
         return LyZServer.askServerWithOpenStream(this, command);
     },
 
+    // Used by the preferences pane; reports the outcome instead of opening dialogs.
+    testConnection: async function() {
+        await this.init();
+        return LyZServer.probe(this);
+    },
+
     settings: async function() {
         if (Zotero.PreferencePanes && Zotero.Utilities && Zotero.Utilities.Internal) {
             Zotero.Utilities.Internal.openPreferences("lyz-prefpane");

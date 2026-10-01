@@ -8,7 +8,7 @@ The roadmap favors data integrity, observable failures, and reproducible cross-p
 
 Create isolated integration tests for the full key-change lifecycle: export the new BibTeX database, create verified `.lyz~` backups, rewrite every associated LyX document, and commit mappings only after all required writes succeed. Define and test rollback behavior for partial failure.
 
-Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. An installed Windows test with Zotero 10.0.1 and LyX 2.5.3 passes 31 checks, including real citation insertion/export, unsaved edits in two associated documents, cancellation, rollback, process termination and startup recovery. It exposed and fixed native Windows path handling and selection of already-open buffers. Other platforms, multiple-window validation, real parent/child include relationships and hardware power-loss behavior remain pending; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
+Development status: the coordinated workflow, persistent recovery journal and isolated filesystem/SQLite regression tests are implemented. Backups have unique names (`<file>.lyz-<uuid>.lyz~`). Caught failures restore recognized changes; startup verifies unfinished transactions and offers recovery after the affected LyX documents are closed. Actual child-process termination tests cover file staging/replacement and SQLite commit boundaries. An installed Windows test with Zotero 10.0.1 and LyX 2.5.3 passes 34 checks, including real citation insertion/export, unsaved edits in two associated documents, cancellation, rollback, process termination and startup recovery. It exposed and fixed native Windows path handling and selection of already-open buffers. Other platforms, multiple-window validation, real parent/child include relationships and hardware power-loss behavior remain pending; see [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md) and [KEY_UPDATE_TESTING.md](KEY_UPDATE_TESTING.md). This item is not yet release-validated.
 
 Success criteria:
 
@@ -38,13 +38,15 @@ Development status (2026-10-01): native I/O now runs in a ChromeWorker with an o
 
 Build a repeatable fixture that opens an isolated LyX document, installs a test Zotero item, inserts a citation, updates the BibTeX entry, and verifies the document and mapping database.
 
-Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements the Windows fixture with a fresh Zotero profile/library, a separate LyX user directory and unique named pipe. It also verifies cancellation, partial-write rollback, abrupt Zotero termination and recovery in a new process. All 31 checks pass; confirmation answers and one write failure are injected by a test-only hook. macOS/Linux adapters, interactive UI review and broader version coverage remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
+Development status: `tests/run-zotero-smoke.py --lyx <executable>` implements the Windows fixture with a fresh Zotero profile/library, a separate LyX user directory and unique named pipe. It also verifies cancellation, partial-write rollback, abrupt Zotero termination and recovery in a new process. All 34 checks pass; confirmation answers and one write failure are injected by a test-only hook. macOS/Linux adapters, interactive UI review and broader version coverage remain pending. See [ZOTERO_LYX_RUNTIME_TEST.md](ZOTERO_LYX_RUNTIME_TEST.md).
 
 ## P2 — maintainability and user experience
 
 ### Preferences validation
 
 Show whether the configured pipe is live, explain when the parent directory must be created, and provide a safe "Test connection" action with the resolved path and LyX response.
+
+Development status: an inline, dialog-free connection test reports the resolved path and the active document, a missing pipe, a missing document, no reply or a LyX error, each with localized next steps. A live citation-key preview flags patterns that will not expand. Pane controls are validated in installed Zotero 10.0.3 with an isolated LyX 2.5 pipe on Windows. Missing Unix parent-directory detection, macOS/Linux runs and keyboard/screen-reader review remain pending.
 
 ### Mapping management UI
 
